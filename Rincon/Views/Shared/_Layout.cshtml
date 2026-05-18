@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Rincon</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Rincon.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.0/css/dataTables.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css" />
+    @RenderSection("Styles", required: false)
+
+</head>
+<body>
+    <header>
+        @if (!Context.Request.Path.StartsWithSegments("/Identity/Account/Login"))
+        {
+            <nav class="navbar navbar-expand-lg bg-dark py-2" data-bs-theme="dark">
+                <div class="container-fluid">
+                    <div class="row w-100 align-items-center">
+                        <div class="col-auto d-flex align-items-center gap-3">
+                            <a class="navbar-brand" href="/">
+                                <img src="~/imagenes/taba.png" class="img-fluid" style="max-width: 130px;" />
+                            </a>
+
+                            @if (User.Identity.IsAuthenticated && User.IsInRole("Administrador"))
+                            {
+                                <div class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-white fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa fa-bars" aria-hidden="true"></i> Contenidos
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" asp-area="Admin" asp-controller="Categories" asp-action="Index">
+                                                <i class="fa fa-folder-open"></i><span>Categorías</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" asp-area="Admin" asp-controller="Articles" asp-action="Index">
+                                                <i class="fa fa-th-list"></i><span>Artículos</span>
+                                            </a>
+                                        </li>                                 
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" asp-area="Admin" asp-controller="Users" asp-action="Index">
+                                                <i class="fa fa-users"></i><span>Usuarios</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" asp-area="Employee" asp-controller="Stock" asp-action="Index">
+                                                <i class="fas fa-boxes"></i><span>Ver stock</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Reports" asp-action="Index">
+                                                <i class="fa-solid fa-file-lines me-2"></i>Informes
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Analytics" asp-action="Index">
+                                                <i class="fa-solid fa-chart-column me-2"></i> Estadísticas
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            else if (User.Identity.IsAuthenticated)
+                            {
+                                <a class="btn d-flex align-items-center" asp-area="Employee" asp-controller="Stock" asp-action="Index">
+                                    <i class="fas fa-boxes me-1"></i> Ver stock
+                                </a>
+                            }
+                        </div>
+
+                        <div class="col text-center">
+                            <form asp-controller="Home" asp-action="Index" method="get" class="d-flex justify-content-center">
+                                <input class="form-control rounded-start w-75" type="search" name="searchString" placeholder="¿Qué deseas buscar?" aria-label="Buscar" value="@ViewBag.CurrentSearch">
+                                <button class="btn btn-outline-light rounded-end" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-auto d-flex align-items-center gap-3">
+                            <partial name="_LoginPartial" />
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        }
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+  
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.0/js/dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.serializeJSON/3.2.1/jquery.serializejson.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        document.getElementById("btnLogout")?.addEventListener("click", function (e) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "Se cerrará tu sesión actual.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("logoutForm").submit();
+                }
+            });
+        });
+    </script>
+    @if (User.Identity.IsAuthenticated && Context.Request.Path != "/Employee/Cart")
+    {
+        <a asp-area="Employee" asp-controller="Cart" asp-action="Index"
+           class="btn position-fixed d-flex justify-content-center align-items-center shadow"
+           style="bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; z-index: 1050; background-color: #523500">
+            <i class="fa fa-shopping-cart fa-lg" style="color: #ebd2a5;"></i>
+            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                0
+            </span>
+        </a>
+    }
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch('/Employee/Cart/GetCartCount')
+                .then(res => res.json())
+                .then(data => {
+                    const cartCount = document.getElementById('cart-count');
+                    if (cartCount) {
+                        cartCount.innerText = data.count;
+                    }
+                });
+        });
+    </script>
+    <script>
+        (function () {
+            document.addEventListener('click', function (ev) {
+                const btn = ev.target.closest('#logoutBtn');
+                if (!btn) return;
+                const form = btn.closest('form');
+                if (!form) return;
+
+                if (window.Swal) {
+                    Swal.fire({
+                        title: 'Cerrar sesión',
+                        text: '¿Seguro que querés cerrar tu sesión actual?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, cerrar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#523500',
+                        cancelButtonColor: '#6c757d'
+                    }).then(res => {
+                        if (res.isConfirmed) form.submit();
+                    });
+                } else {
+                    if (confirm('¿Seguro que querés cerrar tu sesión actual?')) form.submit();
+                }
+            });
+        })();
+    </script>
+
+
+
+</body>
+</html>
+
