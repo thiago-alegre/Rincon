@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "Categorías";
+}
+
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-6">
+            <h2 class="text-primary">Lista de Categorías</h2>
+        </div>
+        <div class="col-6 text-end">
+            <a asp-area="Admin" asp-controller="Category" asp-action="Upsert" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Crear nueva categoría
+            </a>
+        </div>
+    </div>
+
+    <table id="tblCategories" class="table table-bordered table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Fecha de creación</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/js/category.js"></script>
+}

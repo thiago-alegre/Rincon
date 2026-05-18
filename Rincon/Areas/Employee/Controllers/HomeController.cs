@@ -4,7 +4,7 @@ using Rincon.Models;
 
 namespace Rincon.Areas.Empleado.Controllers
 {
-    [Area("Empleado")]
+    [Area("Employee")]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

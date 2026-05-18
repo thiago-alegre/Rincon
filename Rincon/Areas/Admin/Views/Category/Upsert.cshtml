@@ -1,0 +1,108 @@
+﻿@model Rincon.Models.Category
+
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Crear Categoría" : "Editar Categoría";
+}
+@section Styles {
+    <style>
+        #isActiveSwitch {
+            width: 3rem;
+            height: 1.5rem;
+            cursor: pointer;
+        }
+
+            #isActiveSwitch:checked {
+                background-color: #198754;
+                border-color: #198754;
+            }
+
+            #isActiveSwitch:not(:checked) {
+                background-color: #dc3545;
+                border-color: #dc3545;
+            }
+
+        #isActiveLabel {
+            margin-left: 0.5rem;
+        }
+    </style>
+}
+<form method="post" asp-action="Upsert">
+    <input asp-for="Id" hidden />
+    <input asp-for="Date" hidden />
+
+    <div class="container mt-4">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    @(Model.Id == 0 ? "Crear Categoría" : "Editar Categoría")
+                </h3>
+            </div>
+
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="Ingrese el nombre de la categoría" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="isActive" class="form-label"></label>
+
+                    <div class="form-check form-switch">
+                        <input asp-for="isActive"
+                               class="form-check-input"
+                               type="checkbox"
+                               role="switch"
+                               id="isActiveSwitch" />
+
+                        <label class="form-check-label fw-bold" id="isActiveLabel" for="isActiveSwitch">
+                            @(Model.isActive ? "Activo" : "Inactivo")
+                        </label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-primary form-control">
+                            @(Model.Id == 0 ? "Crear" : "Actualizar")
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-secondary form-control">
+                            Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const switchInput = document.getElementById("isActiveSwitch");
+            const switchLabel = document.getElementById("isActiveLabel");
+
+            function updateSwitchLabel() {
+                if (switchInput.checked) {
+                    switchLabel.textContent = "Activo";
+                    switchLabel.classList.remove("text-danger");
+                    switchLabel.classList.add("text-success");
+                } else {
+                    switchLabel.textContent = "Inactivo";
+                    switchLabel.classList.remove("text-success");
+                    switchLabel.classList.add("text-danger");
+                }
+            }
+
+            updateSwitchLabel();
+
+            switchInput.addEventListener("change", updateSwitchLabel);
+        });
+    </script>
+}

@@ -20,7 +20,7 @@ namespace Rincon.Models
         public DateTime Date { get; set; } = DateTime.Now;
 
         [Display(Name = "Estado")]
-        public Boolean isActive { get; set; } = true;
+        public bool isActive { get; set; } = true;
 
     }
 }

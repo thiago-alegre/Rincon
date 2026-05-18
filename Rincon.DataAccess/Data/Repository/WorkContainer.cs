@@ -11,10 +11,12 @@ namespace Rincon.DataAccess.Data.Repository
     {
         private readonly ApplicationDbContext _db;
         public ICategoryRepository Category { get; private set; }
+        public IArticleRepository Article { get; private set; }
         public WorkContainer(ApplicationDbContext db)
         {
             _db = db;
             Category = new CategoryRepository(_db);
+            Article = new ArticleRepository(_db);
         }
 
         public ICategoryRepository categoryRepository { get; private set; }
