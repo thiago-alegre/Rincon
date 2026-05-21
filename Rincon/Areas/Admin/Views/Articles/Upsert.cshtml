@@ -1,0 +1,362 @@
+﻿@model Rincon.Models.ViewModels.ArticleVM
+
+@{
+    ViewData["Title"] = Model.Article.Id == 0 ? "Crear Artículo" : "Editar Artículo";
+}
+
+@section Styles {
+    <style>
+        #isActiveSwitch,
+        #isSoldByWeightSwitch {
+            width: 3rem;
+            height: 1.5rem;
+            cursor: pointer;
+        }
+
+            #isActiveSwitch:checked,
+            #isSoldByWeightSwitch:checked {
+                background-color: #198754;
+                border-color: #198754;
+            }
+
+            #isActiveSwitch:not(:checked),
+            #isSoldByWeightSwitch:not(:checked) {
+                background-color: #dc3545;
+                border-color: #dc3545;
+            }
+
+        #isActiveLabel,
+        #isSoldByWeightLabel {
+            margin-left: 0.5rem;
+        }
+
+        .article-preview-img {
+            max-width: 220px;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            background-color: #fff;
+        }
+    </style>
+}
+
+<form method="post" asp-action="Upsert" enctype="multipart/form-data">
+    <input asp-for="Article.Id" hidden />
+    <input asp-for="Article.ImageUrl" hidden />
+    <input asp-for="Article.Date" hidden />
+    <input asp-for="Article.UnitOfMeasure" hidden id="unitOfMeasureInput" />
+
+    <div class="container mt-4">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    @(Model.Article.Id == 0 ? "Crear Artículo" : "Editar Artículo")
+                </h3>
+            </div>
+
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="row">
+                    <div class="col-md-8">
+
+                        <div class="mb-3">
+                            <label asp-for="Article.Name" class="form-label"></label>
+                            <input asp-for="Article.Name" class="form-control" placeholder="Ingrese el nombre del artículo" />
+                            <span asp-validation-for="Article.Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Article.Description" class="form-label"></label>
+                            <textarea asp-for="Article.Description" class="form-control" rows="3" placeholder="Ingrese una descripción"></textarea>
+                            <span asp-validation-for="Article.Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Article.Code" class="form-label"></label>
+                                <input asp-for="Article.Code" class="form-control" placeholder="Código de barras o código interno" />
+                                <span asp-validation-for="Article.Code" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Article.CategoryId" class="form-label"></label>
+                                <select asp-for="Article.CategoryId" asp-items="Model.CategoryList" class="form-select">
+                                    <option disabled selected value="">Seleccione una categoría</option>
+                                </select>
+                                <span asp-validation-for="Article.CategoryId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">¿Se vende por kg?</label>
+
+                                <div class="form-check form-switch">
+                                    <input asp-for="Article.IsSoldByWeight"
+                                           class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="isSoldByWeightSwitch" />
+
+                                    <label class="form-check-label fw-bold" id="isSoldByWeightLabel" for="isSoldByWeightSwitch">
+                                        @(Model.Article.IsSoldByWeight ? "Sí, se vende por kg" : "No, se vende por unidad")
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PriceText" class="form-label" id="priceLabel">
+                                    Precio de venta por unidad
+                                </label>
+                                <input asp-for="PriceText"
+                                       class="form-control"
+                                       placeholder="Precio de venta"
+                                       inputmode="decimal"
+                                       autocomplete="off" />
+                                <span asp-validation-for="PriceText" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CostText" class="form-label" id="costLabel">
+                                    Costo por unidad
+                                </label>
+                                <input asp-for="CostText"
+                                       class="form-control"
+                                       placeholder="Costo del producto"
+                                       inputmode="decimal"
+                                       autocomplete="off" />
+                                <span asp-validation-for="CostText" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StockText" class="form-label" id="stockLabel">
+                                    Stock en unidades
+                                </label>
+                                <input asp-for="StockText"
+                                       class="form-control"
+                                       placeholder="Stock disponible"
+                                       inputmode="decimal"
+                                       autocomplete="off" />
+                                <span asp-validation-for="StockText" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StockMinText" class="form-label" id="stockMinLabel">
+                                    Stock mínimo en unidades
+                                </label>
+                                <input asp-for="StockMinText"
+                                       class="form-control"
+                                       placeholder="Stock mínimo"
+                                       inputmode="decimal"
+                                       autocomplete="off" />
+                                <span asp-validation-for="StockMinText" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                                                
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Article.ExpirationDate" class="form-label"></label>
+                                <input asp-for="Article.ExpirationDate" type="date" class="form-control" />
+                                <span asp-validation-for="Article.ExpirationDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Imagen del artículo</label>
+                                <input type="file" name="files" id="uploadBox" class="form-control" accept="image/*" />
+                            </div>
+
+                        </div>
+                       
+                        <div class="mb-3">
+                            <label asp-for="Article.isActive" class="form-label"></label>
+
+                            <div class="form-check form-switch">
+                                <input asp-for="Article.isActive"
+                                       class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="isActiveSwitch" />
+
+                                <label class="form-check-label fw-bold" id="isActiveLabel" for="isActiveSwitch">
+                                    @(Model.Article.isActive ? "Activo" : "Inactivo")
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-4 text-center">
+                        <img id="imagePreview"
+                             src="@(string.IsNullOrEmpty(Model.Article.ImageUrl) ? "" : Model.Article.ImageUrl)"
+                             class="article-preview-img mb-3"
+                             style="@(string.IsNullOrEmpty(Model.Article.ImageUrl) ? "display:none;" : "")" />
+
+                        <div id="noImageText"
+                             class="border rounded p-4 text-muted mb-3"
+                             style="@(!string.IsNullOrEmpty(Model.Article.ImageUrl) ? "display:none;" : "")">
+                            Sin imagen cargada
+                        </div>
+
+                        <div class="alert alert-info text-start mt-3">
+                            <strong>Referencia:</strong>
+                            <div id="unitHelpText">
+                                Este producto se vende por unidad. El precio y el costo corresponden a cada producto individual.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-primary form-control">
+                            @(Model.Article.Id == 0 ? "Crear" : "Actualizar")
+                        </button>
+                    </div>
+
+                    <div class="col-6">
+                        <a asp-area="Admin" asp-controller="Articles" asp-action="Index" class="btn btn-secondary form-control">
+                            Volver
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // =========================
+            // SWITCH ACTIVO / INACTIVO
+            // =========================
+            const activeSwitch = document.getElementById("isActiveSwitch");
+            const activeLabel = document.getElementById("isActiveLabel");
+
+            function updateActiveSwitchLabel() {
+                if (!activeSwitch || !activeLabel) {
+                    return;
+                }
+
+                if (activeSwitch.checked) {
+                    activeLabel.textContent = "Activo";
+                    activeLabel.classList.remove("text-danger");
+                    activeLabel.classList.add("text-success");
+                } else {
+                    activeLabel.textContent = "Inactivo";
+                    activeLabel.classList.remove("text-success");
+                    activeLabel.classList.add("text-danger");
+                }
+            }
+
+            updateActiveSwitchLabel();
+
+            if (activeSwitch) {
+                activeSwitch.addEventListener("change", updateActiveSwitchLabel);
+            }
+
+
+            // =========================
+            // SWITCH POR PESO / UNIDAD
+            // =========================
+            const weightSwitch = document.getElementById("isSoldByWeightSwitch");
+            const weightLabel = document.getElementById("isSoldByWeightLabel");
+            const unitOfMeasureInput = document.getElementById("unitOfMeasureInput");
+            const unitHelpText = document.getElementById("unitHelpText");
+
+            const priceLabel = document.getElementById("priceLabel");
+            const costLabel = document.getElementById("costLabel");
+            const stockLabel = document.getElementById("stockLabel");
+            const stockMinLabel = document.getElementById("stockMinLabel");
+
+            function updateWeightMode() {
+                if (!weightSwitch || !weightLabel || !unitOfMeasureInput) {
+                    return;
+                }
+
+                if (weightSwitch.checked) {
+                    weightLabel.textContent = "Sí, se vende por kg";
+                    weightLabel.classList.remove("text-danger");
+                    weightLabel.classList.add("text-success");
+
+                    unitOfMeasureInput.value = "Kilogramo";
+
+                    if (priceLabel) priceLabel.textContent = "Precio de venta por kilogramo";
+                    if (costLabel) costLabel.textContent = "Costo por kilogramo";
+                    if (stockLabel) stockLabel.textContent = "Stock en kilogramos";
+                    if (stockMinLabel) stockMinLabel.textContent = "Stock mínimo en kilogramos";
+
+                    if (unitHelpText) {
+                        unitHelpText.innerText = "Este producto se vende por kg. Cargá precio, costo y stock tomando como referencia el kilogramo.";
+                    }
+                } else {
+                    weightLabel.textContent = "No, se vende por unidad";
+                    weightLabel.classList.remove("text-success");
+                    weightLabel.classList.add("text-danger");
+
+                    unitOfMeasureInput.value = "Unidad";
+
+                    if (priceLabel) priceLabel.textContent = "Precio de venta por unidad";
+                    if (costLabel) costLabel.textContent = "Costo por unidad";
+                    if (stockLabel) stockLabel.textContent = "Stock en unidades";
+                    if (stockMinLabel) stockMinLabel.textContent = "Stock mínimo en unidades";
+
+                    if (unitHelpText) {
+                        unitHelpText.innerText = "Este producto se vende por unidad. El precio y el costo corresponden a cada producto individual.";
+                    }
+                }
+            }
+
+            updateWeightMode();
+
+            if (weightSwitch) {
+                weightSwitch.addEventListener("change", updateWeightMode);
+            }
+
+            // =========================
+            // PREVISUALIZACIÓN DE IMAGEN
+            // =========================
+            const uploadBox = document.getElementById("uploadBox");
+            const imagePreview = document.getElementById("imagePreview");
+            const noImageText = document.getElementById("noImageText");
+
+            if (uploadBox && imagePreview) {
+                uploadBox.addEventListener("change", function () {
+                    const file = this.files[0];
+
+                    if (!file) {
+                        return;
+                    }
+
+                    if (!file.type.startsWith("image/")) {
+                        toastr.error("Debe seleccionar un archivo de imagen válido");
+                        uploadBox.value = "";
+                        return;
+                    }
+
+                    const imageUrl = URL.createObjectURL(file);
+
+                    imagePreview.src = imageUrl;
+                    imagePreview.style.display = "inline-block";
+
+                    if (noImageText) {
+                        noImageText.style.display = "none";
+                    }
+                });
+            }
+        });
+    </script>
+}

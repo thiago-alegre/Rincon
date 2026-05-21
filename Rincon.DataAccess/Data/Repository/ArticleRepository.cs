@@ -27,8 +27,11 @@ namespace Rincon.DataAccess.Data.Repository
                 objFromDb.Description = article.Description;
                 objFromDb.Code = article.Code;
                 objFromDb.Price = article.Price;
+                objFromDb.Cost = article.Cost;
                 objFromDb.Stock = article.Stock;
                 objFromDb.StockMin = article.StockMin;
+                objFromDb.IsSoldByWeight = article.IsSoldByWeight;
+                objFromDb.UnitOfMeasure = article.UnitOfMeasure;
                 objFromDb.ExpirationDate = article.ExpirationDate;
                 objFromDb.CategoryId = article.CategoryId;
                 objFromDb.isActive = article.isActive;

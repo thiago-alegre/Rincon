@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Rincon.Models
@@ -25,18 +20,29 @@ namespace Rincon.Models
         public string Code { get; set; }
 
         [Required(ErrorMessage = "Ingrese un precio")]
-        [Display(Name = "Precio")]
+        [Display(Name = "Precio de venta")]
         [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0")]
         public decimal Price { get; set; }
 
+        [Required(ErrorMessage = "Ingrese un costo")]
+        [Display(Name = "Costo")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "El costo debe ser mayor a 0")]
+        public decimal Cost { get; set; }
+
         [Required(ErrorMessage = "Ingrese el stock")]
         [Display(Name = "Stock")]
-        [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo")]
-        public int Stock { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El stock no puede ser negativo")]
+        public decimal Stock { get; set; }
 
         [Display(Name = "Stock mínimo")]
-        [Range(0, int.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo")]
-        public int StockMin { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo")]
+        public decimal StockMin { get; set; }
+
+        [Display(Name = "¿Se vende por peso?")]
+        public bool IsSoldByWeight { get; set; } = false;
+
+        [Display(Name = "Unidad de medida")]
+        public string UnitOfMeasure { get; set; } = "Unidad";
 
         [Display(Name = "Fecha de vencimiento")]
         public DateTime? ExpirationDate { get; set; }

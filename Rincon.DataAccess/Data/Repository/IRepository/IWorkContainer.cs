@@ -10,6 +10,8 @@ namespace Rincon.DataAccess.Data.Repository.IRepository
     {
         ICategoryRepository Category { get; }
         IArticleRepository Article { get; }
+        ISaleRepository Sale { get; }
+        ISaleDetailRepository SaleDetail { get; }
         void Save();
     }
 }

@@ -1,0 +1,503 @@
+@model Rincon.Models.ViewModels.CartVM
+
+@{
+    ViewData["Title"] = "Carrito";
+}
+
+@functions {
+    private string GetUnitText(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "unidad";
+        }
+
+        return "kg";
+    }
+
+    private string FormatQuantity(Rincon.Models.Article article, decimal quantity)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return $"{quantity:N0} unidades";
+        }
+
+        return $"{quantity:N2} kg";
+    }
+
+    private string GetDefaultQuantity(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "1";
+        }
+
+        return "0,10";
+    }
+
+    private string GetQuantityInputValue(Rincon.Models.Article article, decimal quantity)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return quantity.ToString("0");
+        }
+
+        return quantity.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("es-AR"));
+    }
+
+    private string GetQuantityUnit(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "u";
+        }
+
+        return "kg";
+    }
+}
+
+<section class="py-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 text-primary mb-1">Carrito</h1>
+            <p class="text-muted mb-0">Escanea productos, busca manualmente y cobra desde una sola pantalla.</p>
+        </div>
+
+        <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fa fa-table-cells-large me-1"></i> Ver catalogo
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="border rounded p-3 bg-light h-100">
+                <form asp-area="Employee" asp-controller="Cart" asp-action="AddByCode" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <label for="codeText" class="form-label fw-semibold">Escanear o ingresar codigo</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa fa-barcode"></i></span>
+                        <input type="text"
+                               id="codeText"
+                               name="codeText"
+                               class="form-control"
+                               autocomplete="off"
+                               autofocus
+                               placeholder="Codigo de barras o QR" />
+                        <input type="text"
+                               name="quantityText"
+                               class="form-control"
+                               style="max-width: 130px;"
+                               inputmode="decimal"
+                               placeholder="Cant./peso" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-plus me-1"></i> Agregar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="border rounded p-3 bg-light h-100">
+                <form asp-area="Employee" asp-controller="Cart" asp-action="Index" method="get">
+                    <label for="searchString" class="form-label fw-semibold">Buscar producto sin codigo</label>
+                    <div class="input-group">
+                        <input type="search"
+                               id="searchString"
+                               name="searchString"
+                               class="form-control"
+                               value="@Model.SearchString"
+                               placeholder="Nombre, codigo o categoria" />
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SearchString))
+    {
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 mb-0">Resultados de busqueda</h2>
+                <a asp-area="Employee" asp-controller="Cart" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    Limpiar
+                </a>
+            </div>
+
+            @if (!Model.SearchResults.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    No se encontraron productos activos.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Codigo</th>
+                                <th>Categoria</th>
+                                <th>Precio</th>
+                                <th>Stock</th>
+                                <th style="width: 260px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var article in Model.SearchResults)
+                            {
+                                <tr>
+                                    <td>@article.Name</td>
+                                    <td>@article.Code</td>
+                                    <td>@article.Category?.Name</td>
+                                    <td>$ @article.Price.ToString("N2") / @GetUnitText(article)</td>
+                                    <td>@FormatQuantity(article, article.Stock)</td>
+                                    <td>
+                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Add" method="post" class="d-flex gap-2">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden" name="articleId" value="@article.Id" />
+                                            <input type="text"
+                                                   name="quantityText"
+                                                   class="form-control form-control-sm"
+                                                   value="@GetDefaultQuantity(article)"
+                                                   inputmode="decimal" />
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="fa fa-cart-plus me-1"></i> Agregar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!Model.Items.Any())
+    {
+        <div class="alert alert-info">
+            El carrito esta vacio.
+        </div>
+    }
+    else
+    {
+        @if (Model.HasStockProblems)
+        {
+            <div class="alert alert-danger">
+                Hay productos en el carrito que superan el stock disponible. Ajusta las cantidades antes de confirmar la venta.
+            </div>
+        }
+
+        @if (!Model.HasStockProblems && Model.HasMinimumStockWarnings)
+        {
+            <div class="alert alert-warning">
+                Al confirmar esta venta, uno o mas productos quedaran en el margen de stock minimo.
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (!string.IsNullOrEmpty(item.Article.ImageUrl))
+                                    {
+                                        <img src="@item.Article.ImageUrl"
+                                             alt="@item.Article.Name"
+                                             style="width:64px;height:64px;object-fit:cover;border-radius:6px;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light border d-flex align-items-center justify-content-center text-muted"
+                                             style="width:64px;height:64px;border-radius:6px;">
+                                            <i class="fa fa-image"></i>
+                                        </div>
+                                    }
+
+                                    <div>
+                                        <div class="fw-semibold">@item.Article.Name</div>
+                                        <div class="small text-muted">Codigo: @item.Article.Code</div>
+
+                                        @if (item.ExceedsStock)
+                                        {
+                                            <div class="small text-danger fw-semibold">
+                                                Stock disponible: @FormatQuantity(item.Article, item.Article.Stock)
+                                            </div>
+                                        }
+                                        else if (item.ReachesMinimumStock)
+                                        {
+                                            <div class="small text-warning fw-semibold">
+                                                Despues de vender quedara: @FormatQuantity(item.Article, item.RemainingStock)
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>$ @item.Article.Price.ToString("N2") / @GetUnitText(item.Article)</td>
+
+                            <td>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <form asp-area="Employee" asp-controller="Cart" asp-action="Minus" method="post">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Restar">
+                                            <i class="fa fa-minus"></i>
+                                        </button>
+                                    </form>
+
+                                    <form asp-area="Employee"
+                                          asp-controller="Cart"
+                                          asp-action="UpdateQuantity"
+                                          method="post"
+                                          class="d-flex align-items-center">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                        <div class="input-group input-group-sm" style="width: 150px;">
+                                            <input type="text"
+                                                   name="quantityText"
+                                                   class="form-control text-end"
+                                                   value="@GetQuantityInputValue(item.Article, item.Quantity)"
+                                                   inputmode="decimal"
+                                                   aria-label="Cantidad" />
+                                            <span class="input-group-text">@GetQuantityUnit(item.Article)</span>
+                                            <button type="submit" class="btn btn-outline-primary" title="Actualizar cantidad">
+                                                <i class="fa fa-check"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <form asp-area="Employee" asp-controller="Cart" asp-action="Plus" method="post">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Sumar">
+                                            <i class="fa fa-plus"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+
+                            <td class="fw-semibold">$ @item.LineTotal.ToString("N2")</td>
+
+                            <td class="text-end">
+                                <form asp-area="Employee" asp-controller="Cart" asp-action="Remove" method="post">
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Quitar">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="border-top pt-3">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+                <form asp-area="Employee" asp-controller="Cart" asp-action="Clear" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fa fa-trash me-1"></i> Vaciar carrito
+                    </button>
+                </form>
+
+                <div class="text-lg-end">
+                    <div class="text-muted">Total</div>
+                    <div id="cartTotal"
+                         class="fs-4 fw-bold text-success"
+                         data-total="@Model.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                        $ @Model.Total.ToString("N2")
+                    </div>
+                </div>
+            </div>
+
+            <form asp-area="Employee" asp-controller="Cart" asp-action="ConfirmSale" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3 align-items-stretch">
+                    <div class="col-lg-6">
+                        <div class="border rounded p-3 bg-light h-100">
+                            <label for="paymentMethod" class="form-label fw-semibold">Medio de pago</label>
+
+                            <select id="paymentMethod" name="paymentMethod" class="form-select">
+                                <option value="Efectivo" selected>Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="CuentaPersonal" disabled>Cuenta personal (próximamente)</option>
+                            </select>
+
+                            <div id="personalAccountNotice" class="alert alert-warning py-2 mt-3 mb-0" style="display:none;">
+                                Cuenta personal quedará pendiente para asociar la venta a una persona y acumular deuda.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="border rounded p-3 bg-light h-100">
+                            <label for="cashReceived" class="form-label fw-semibold">Pago en efectivo</label>
+
+                            <div id="cashPaymentPanel">
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text"
+                                           id="cashReceived"
+                                           name="amountReceivedText"
+                                           class="form-control"
+                                           inputmode="decimal"
+                                           autocomplete="off"
+                                           placeholder="Monto recibido" />
+                                </div>
+
+                                <div id="changeResult" class="fw-semibold text-muted">
+                                    Vuelto: $ 0,00
+                                </div>
+                            </div>
+
+                            <div id="nonCashNotice" class="text-muted" style="display:none;">
+                                Este medio de pago no requiere calcular vuelto.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit"
+                            class="btn btn-primary"
+                            style="min-width: 260px;"
+                            @(Model.HasStockProblems ? "disabled" : "")>
+                        <i class="fa fa-check me-1"></i> Confirmar venta
+                    </button>
+                </div>
+            </form>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const codeInput = document.getElementById("codeText");
+            const paymentMethod = document.getElementById("paymentMethod");
+            const cashPaymentPanel = document.getElementById("cashPaymentPanel");
+            const nonCashNotice = document.getElementById("nonCashNotice");
+            const personalAccountNotice = document.getElementById("personalAccountNotice");
+            const cashInput = document.getElementById("cashReceived");
+            const changeResult = document.getElementById("changeResult");
+            const totalElement = document.getElementById("cartTotal");
+
+            if (codeInput) {
+                codeInput.focus();
+            }
+
+            function updatePaymentMethodView() {
+                if (!paymentMethod || !cashPaymentPanel || !nonCashNotice || !personalAccountNotice) {
+                    return;
+                }
+
+                const selectedMethod = paymentMethod.value;
+
+                cashPaymentPanel.style.display = selectedMethod === "Efectivo" ? "block" : "none";
+                nonCashNotice.style.display = selectedMethod === "Efectivo" ? "none" : "block";
+                personalAccountNotice.style.display = selectedMethod === "CuentaPersonal" ? "block" : "none";
+            }
+
+            if (paymentMethod) {
+                paymentMethod.addEventListener("change", updatePaymentMethodView);
+                updatePaymentMethodView();
+            }
+
+            if (!cashInput || !changeResult || !totalElement) {
+                return;
+            }
+
+            const total = Number(totalElement.dataset.total);
+
+            function parseDecimal(value) {
+                if (!value) {
+                    return NaN;
+                }
+
+                value = value.trim().replace(/\s/g, "").replace("$", "");
+                const hasComma = value.includes(",");
+                const hasDot = value.includes(".");
+
+                if (hasComma && hasDot) {
+                    const lastComma = value.lastIndexOf(",");
+                    const lastDot = value.lastIndexOf(".");
+
+                    value = lastComma > lastDot
+                        ? value.replace(/\./g, "").replace(",", ".")
+                        : value.replace(/,/g, "");
+                } else if (hasComma) {
+                    value = value.replace(",", ".");
+                } else if (hasDot) {
+                    const lastDot = value.lastIndexOf(".");
+                    const digitsAfterDot = value.length - lastDot - 1;
+
+                    if (digitsAfterDot === 3) {
+                        value = value.replace(/\./g, "");
+                    }
+                }
+
+                return Number(value);
+            }
+
+            function formatMoney(value) {
+                return value.toLocaleString("es-AR", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            cashInput.addEventListener("input", function () {
+                const cashReceived = parseDecimal(cashInput.value);
+
+                if (Number.isNaN(cashReceived)) {
+                    changeResult.textContent = "Vuelto: $ 0,00";
+                    changeResult.classList.remove("text-danger", "text-success");
+                    changeResult.classList.add("text-muted");
+                    return;
+                }
+
+                const change = cashReceived - total;
+
+                if (change < 0) {
+                    changeResult.textContent = "Faltan: $ " + formatMoney(Math.abs(change));
+                    changeResult.classList.remove("text-muted", "text-success");
+                    changeResult.classList.add("text-danger");
+                    return;
+                }
+
+                changeResult.textContent = "Vuelto: $ " + formatMoney(change);
+                changeResult.classList.remove("text-muted", "text-danger");
+                changeResult.classList.add("text-success");
+            });
+        });
+    </script>
+}

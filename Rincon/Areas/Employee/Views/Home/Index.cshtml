@@ -1,8 +1,166 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model IEnumerable<Rincon.Models.Article>
+
+@{
+    ViewData["Title"] = "Productos";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@functions {
+    private string GetUnitText(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "unidad";
+        }
+
+        return "kg";
+    }
+
+    private string GetStockText(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return $"{article.Stock:N0} unidades";
+        }
+
+        return $"{article.Stock:N2} kg";
+    }
+
+    private string GetDefaultQuantity(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "1";
+        }
+
+        return "0,10";
+    }
+
+    private string GetQuantityHelp(Rincon.Models.Article article)
+    {
+        if (!article.IsSoldByWeight || article.UnitOfMeasure == "Unidad")
+        {
+            return "Cantidad en unidades";
+        }
+
+        return "Cantidad en kilogramos";
+    }
+
+    private string GetExpirationBadge(Rincon.Models.Article article)
+    {
+        if (article.ExpirationDate == null)
+        {
+            return "<span class=\"badge text-bg-secondary\">Sin vencimiento</span>";
+        }
+
+        DateTime expirationDate = article.ExpirationDate.Value.Date;
+        DateTime today = DateTime.Today;
+        string formattedDate = expirationDate.ToString("dd/MM/yyyy");
+
+        if (expirationDate < today)
+        {
+            return $"<span class=\"badge text-bg-danger\">Vencido - {formattedDate}</span>";
+        }
+
+        if (expirationDate <= today.AddDays(7))
+        {
+            return $"<span class=\"badge text-bg-warning\">Por vencer - {formattedDate}</span>";
+        }
+
+        return $"<span class=\"badge text-bg-success\">Vigente - {formattedDate}</span>";
+    }
+}
+
+<section class="py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 text-primary mb-1">Productos disponibles</h1>
+            <p class="text-muted mb-0">Catálogo activo del local para consulta y venta.</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.CurrentSearch as string))
+        {
+            <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fa fa-times me-1"></i> Limpiar búsqueda
+            </a>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            No hay productos activos para mostrar.
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var article in Model)
+            {
+                bool lowStock = article.Stock <= article.StockMin;
+
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="ratio ratio-4x3 bg-light rounded-top overflow-hidden">
+                            @if (!string.IsNullOrEmpty(article.ImageUrl))
+                            {
+                                <img src="@article.ImageUrl"
+                                     class="w-100 h-100"
+                                     style="object-fit: cover;"
+                                     alt="@article.Name" />
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column align-items-center justify-content-center text-muted">
+                                    <i class="fa fa-image fa-2x mb-2"></i>
+                                    <span>Sin imagen</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <h2 class="h6 mb-0">@article.Name</h2>
+                                <span class="badge text-bg-light border">@article.Category?.Name</span>
+                            </div>
+
+                            <div class="small text-muted mb-2">
+                                Código: @article.Code
+                            </div>
+
+                            <div class="fw-bold fs-5 text-success mb-2">
+                                $ @article.Price.ToString("N2") / @GetUnitText(article)
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="badge @(lowStock ? "text-bg-warning" : "text-bg-secondary")">
+                                    Stock: @GetStockText(article)
+                                </span>
+
+                                @Html.Raw(GetExpirationBadge(article))
+                            </div>
+
+                            <form asp-area="Employee" asp-controller="Cart" asp-action="Add" method="post" class="mt-auto">
+                                <input type="hidden" name="articleId" value="@article.Id" />
+
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">
+                                        <i class="fa fa-scale-balanced"></i>
+                                    </span>
+                                    <input type="text"
+                                           name="quantityText"
+                                           class="form-control"
+                                           value="@GetDefaultQuantity(article)"
+                                           aria-label="@GetQuantityHelp(article)" />
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fa fa-cart-plus me-1"></i> Agregar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>

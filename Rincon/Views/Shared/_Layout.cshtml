@@ -32,7 +32,7 @@
                     <div class="row w-100 align-items-center">
 
                         <div class="col-auto d-flex align-items-center gap-3">
-                            <a class="navbar-brand" asp-area="Employee" asp-controller="Home" asp-action="Index">
+                            <a class="navbar-brand" asp-area="Employee" asp-controller="Cart" asp-action="Index">
                                 <img src="~/imagenes/taba.png" class="img-fluid" style="max-width: 130px;" />
                             </a>
 
@@ -122,23 +122,39 @@
                         </div>
 
                         <div class="col text-center">
-                            <form asp-area="Employee"
-                                  asp-controller="Home"
-                                  asp-action="Index"
-                                  method="get"
-                                  class="d-flex justify-content-center">
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <form asp-area="Employee"
+                                      asp-controller="Cart"
+                                      asp-action="Index"
+                                      method="get"
+                                      class="d-flex justify-content-center flex-grow-1">
 
-                                <input class="form-control rounded-start w-75"
-                                       type="search"
-                                       name="searchString"
-                                       placeholder="¿Qué deseas buscar?"
-                                       aria-label="Buscar"
-                                       value="@ViewBag.CurrentSearch" />
+                                    <input class="form-control rounded-start"
+                                           type="search"
+                                           name="searchString"
+                                           placeholder="¿Qué deseas buscar?"
+                                           aria-label="Buscar"
+                                           value="@ViewBag.CurrentSearch" />
 
-                                <button class="btn btn-outline-light rounded-end" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </form>
+                                    <button class="btn btn-outline-light rounded-end" type="submit">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </form>
+
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    <a asp-area="Employee"
+                                       asp-controller="Cart"
+                                       asp-action="Index"
+                                       class="btn btn-outline-light position-relative flex-shrink-0"
+                                       title="Ver carrito">
+                                        <i class="fa fa-shopping-cart"></i>
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count-badge">
+                                            0
+                                        </span>
+                                    </a>
+                                }
+                            </div>
                         </div>
 
                         <div class="col-auto d-flex align-items-center gap-3">
@@ -169,8 +185,7 @@
 
             <i class="fa fa-shopping-cart fa-lg" style="color: #ebd2a5;"></i>
 
-            <span id="cart-count"
-                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count-badge">
                 0
             </span>
         </a>
@@ -206,16 +221,22 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const cartCount = document.getElementById("cart-count");
+            const cartCountBadges = document.querySelectorAll(".cart-count-badge");
 
-            if (cartCount) {
+            if (cartCountBadges.length > 0) {
                 fetch("/Employee/Cart/GetCartCount")
                     .then(res => res.json())
                     .then(data => {
-                        cartCount.innerText = data.count;
+                        cartCountBadges.forEach(badge => {
+                            badge.innerText = data.count;
+                            badge.style.display = data.count > 0 ? "inline-block" : "none";
+                        });
                     })
                     .catch(() => {
-                        cartCount.innerText = "0";
+                        cartCountBadges.forEach(badge => {
+                            badge.innerText = "0";
+                            badge.style.display = "none";
+                        });
                     });
             }
         });
