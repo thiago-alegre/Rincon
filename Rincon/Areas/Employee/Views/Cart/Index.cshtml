@@ -1,4 +1,4 @@
-@model Rincon.Models.ViewModels.CartVM
+﻿@model Rincon.Models.ViewModels.CartVM
 
 @{
     ViewData["Title"] = "Carrito";
@@ -56,42 +56,62 @@
     }
 }
 
-<section class="py-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
-            <h1 class="h3 text-primary mb-1">Carrito</h1>
-            <p class="text-muted mb-0">Escanea productos, busca manualmente y cobra desde una sola pantalla.</p>
-        </div>
+<section class="cart-page py-4">
+    <div class="cart-hero mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="cart-hero-icon">
+                    <i class="fa fa-cart-shopping"></i>
+                </div>
 
-        <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-            <i class="fa fa-table-cells-large me-1"></i> Ver catalogo
-        </a>
+                <div>
+                    <h3 class="cart-title mb-1">Carrito de venta</h3>
+                </div>
+            </div>
+
+            <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-soft-secondary">
+                <i class="fa fa-table-cells-large me-2"></i> Ver catálogo
+            </a>
+        </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-lg-7">
-            <div class="border rounded p-3 bg-light h-100">
+            <div class="action-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="action-icon">
+                        <i class="fa fa-barcode"></i>
+                    </div>
+                    <div>
+                        <h2 class="action-title mb-0">Escanear producto</h2>
+                        <p class="action-description mb-0">Ingresá un código de barras o QR.</p>
+                    </div>
+                </div>
+
                 <form asp-area="Employee" asp-controller="Cart" asp-action="AddByCode" method="post">
                     @Html.AntiForgeryToken()
 
-                    <label for="codeText" class="form-label fw-semibold">Escanear o ingresar codigo</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa fa-barcode"></i></span>
+                    <div class="input-group input-group-modern">
+                        <span class="input-group-text">
+                            <i class="fa fa-barcode"></i>
+                        </span>
+
                         <input type="text"
                                id="codeText"
                                name="codeText"
                                class="form-control"
                                autocomplete="off"
                                autofocus
-                               placeholder="Codigo de barras o QR" />
+                               placeholder="Código de barras o QR" />
+
                         <input type="text"
                                name="quantityText"
-                               class="form-control"
-                               style="max-width: 130px;"
+                               class="form-control quantity-short"
                                inputmode="decimal"
                                placeholder="Cant./peso" />
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa fa-plus me-1"></i> Agregar
+
+                        <button type="submit" class="btn btn-primary btn-modern">
+                            <i class="fa fa-plus me-2"></i> Agregar
                         </button>
                     </div>
                 </form>
@@ -99,17 +119,27 @@
         </div>
 
         <div class="col-lg-5">
-            <div class="border rounded p-3 bg-light h-100">
+            <div class="action-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="action-icon">
+                        <i class="fa fa-magnifying-glass"></i>
+                    </div>
+                    <div>
+                        <h2 class="action-title mb-0">Buscar producto</h2>
+                        <p class="action-description mb-0">Buscá por nombre, código o categoría.</p>
+                    </div>
+                </div>
+
                 <form asp-area="Employee" asp-controller="Cart" asp-action="Index" method="get">
-                    <label for="searchString" class="form-label fw-semibold">Buscar producto sin codigo</label>
-                    <div class="input-group">
+                    <div class="input-group input-group-modern">
                         <input type="search"
                                id="searchString"
                                name="searchString"
                                class="form-control"
                                value="@Model.SearchString"
-                               placeholder="Nombre, codigo o categoria" />
-                        <button type="submit" class="btn btn-outline-primary">
+                               placeholder="Nombre, código o categoría" />
+
+                        <button type="submit" class="btn btn-outline-primary btn-icon-search">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -120,54 +150,74 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.SearchString))
     {
-        <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h2 class="h5 mb-0">Resultados de busqueda</h2>
-                <a asp-area="Employee" asp-controller="Cart" asp-action="Index" class="btn btn-sm btn-outline-secondary">
-                    Limpiar
+        <div class="content-card mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                <div>
+                    <span class="section-kicker">Búsqueda</span>
+                    <h2 class="section-title mb-0">Resultados encontrados</h2>
+                </div>
+
+                <a asp-area="Employee" asp-controller="Cart" asp-action="Index" class="btn btn-soft-secondary btn-sm">
+                    <i class="fa fa-xmark me-1"></i> Limpiar búsqueda
                 </a>
             </div>
 
             @if (!Model.SearchResults.Any())
             {
-                <div class="alert alert-info mb-0">
-                    No se encontraron productos activos.
+                <div class="empty-state compact">
+                    <div class="empty-illustration">
+                        <i class="fa fa-magnifying-glass"></i>
+                    </div>
+
+                    <h3>No encontramos ese producto</h3>
+                    <p>
+                        Probá con otro nombre, código o categoría. También podés escanear el código de barras si lo tenés a mano.
+                    </p>
                 </div>
             }
             else
             {
-                <div class="table-responsive border rounded">
-                    <table class="table table-sm align-middle mb-0">
+                <div class="table-responsive custom-table-wrapper">
+                    <table class="table table-hover align-middle mb-0 custom-table">
                         <thead>
                             <tr>
                                 <th>Producto</th>
-                                <th>Codigo</th>
-                                <th>Categoria</th>
+                                <th>Código</th>
+                                <th>Categoría</th>
                                 <th>Precio</th>
                                 <th>Stock</th>
-                                <th style="width: 260px;"></th>
+                                <th class="text-end">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var article in Model.SearchResults)
                             {
                                 <tr>
-                                    <td>@article.Name</td>
-                                    <td>@article.Code</td>
+                                    <td>
+                                        <div class="fw-semibold">@article.Name</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@article.Code</span>
+                                    </td>
                                     <td>@article.Category?.Name</td>
-                                    <td>$ @article.Price.ToString("N2") / @GetUnitText(article)</td>
+                                    <td>
+                                        <span class="fw-semibold">$ @article.Price.ToString("N2")</span>
+                                        <span class="text-muted">/ @GetUnitText(article)</span>
+                                    </td>
                                     <td>@FormatQuantity(article, article.Stock)</td>
                                     <td>
-                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Add" method="post" class="d-flex gap-2">
+                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Add" method="post" class="d-flex justify-content-end gap-2">
                                             @Html.AntiForgeryToken()
 
                                             <input type="hidden" name="articleId" value="@article.Id" />
+
                                             <input type="text"
                                                    name="quantityText"
-                                                   class="form-control form-control-sm"
+                                                   class="form-control form-control-sm quantity-result-input"
                                                    value="@GetDefaultQuantity(article)"
                                                    inputmode="decimal" />
-                                            <button type="submit" class="btn btn-sm btn-primary">
+
+                                            <button type="submit" class="btn btn-sm btn-primary btn-modern-sm">
                                                 <i class="fa fa-cart-plus me-1"></i> Agregar
                                             </button>
                                         </form>
@@ -183,188 +233,278 @@
 
     @if (!Model.Items.Any())
     {
-        <div class="alert alert-info">
-            El carrito esta vacio.
+        <div class="empty-state main-empty">
+            <div class="empty-illustration cart-empty">
+                <i class="fa fa-cart-shopping"></i>
+            </div>
+
+            <h2>El carrito está vacío</h2>
+            <p>
+                Escaneá un producto o usá la búsqueda para empezar a cargar la venta.
+            </p>
+
+            <div class="empty-actions">
+                <a href="#codeText" class="btn btn-primary btn-modern">
+                    <i class="fa fa-barcode me-2"></i> Escanear producto
+                </a>
+
+                <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-soft-secondary">
+                    <i class="fa fa-table-cells-large me-2"></i> Ver catálogo
+                </a>
+            </div>
         </div>
     }
     else
     {
         @if (Model.HasStockProblems)
         {
-            <div class="alert alert-danger">
-                Hay productos en el carrito que superan el stock disponible. Ajusta las cantidades antes de confirmar la venta.
+            <div class="alert custom-alert-danger">
+                <i class="fa fa-triangle-exclamation me-2"></i>
+                Hay productos en el carrito que superan el stock disponible. Ajustá las cantidades antes de confirmar la venta.
             </div>
         }
 
         @if (!Model.HasStockProblems && Model.HasMinimumStockWarnings)
         {
-            <div class="alert alert-warning">
-                Al confirmar esta venta, uno o mas productos quedaran en el margen de stock minimo.
+            <div class="alert custom-alert-warning">
+                <i class="fa fa-circle-exclamation me-2"></i>
+                Al confirmar esta venta, uno o más productos quedarán en el margen de stock mínimo.
             </div>
         }
 
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Precio</th>
-                        <th>Cantidad</th>
-                        <th>Subtotal</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Items)
-                    {
+        <div class="content-card mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                <div>
+                    <span class="section-kicker">Detalle</span>
+                    <h2 class="section-title mb-0">Productos cargados</h2>
+                </div>
+
+                <span class="cart-count-pill">
+                    <i class="fa fa-box me-1"></i> @Model.Items.Count() productos
+                </span>
+            </div>
+
+            <div class="table-responsive custom-table-wrapper">
+                <table class="table align-middle mb-0 custom-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    @if (!string.IsNullOrEmpty(item.Article.ImageUrl))
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Disponible</th>
+                            <th>Subtotal</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        @if (!string.IsNullOrEmpty(item.Article.ImageUrl))
+                                        {
+                                            <img src="@item.Article.ImageUrl"
+                                                 alt="@item.Article.Name"
+                                                 class="cart-product-img" />
+                                        }
+                                        else
+                                        {
+                                            <div class="cart-product-placeholder">
+                                                <i class="fa fa-image"></i>
+                                            </div>
+                                        }
+
+                                        <div>
+                                            <div class="fw-semibold">@item.Article.Name</div>
+                                            <div class="small text-muted">Código: @item.Article.Code</div>
+
+                                            @if (item.ExceedsStock)
+                                            {
+                                                <div class="small text-danger fw-semibold mt-1">
+                                                    La cantidad supera el stock disponible.
+                                                </div>
+                                            }
+                                            else if (item.ReachesMinimumStock)
+                                            {
+                                                <div class="small text-warning fw-semibold mt-1">
+                                                    Después de vender quedará: @FormatQuantity(item.Article, item.RemainingStock)
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="fw-semibold">$ @item.Article.Price.ToString("N2")</span>
+                                    <span class="text-muted">/ @GetUnitText(item.Article)</span>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Minus" method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+
+                                            <button type="submit" class="btn btn-quantity" title="Restar">
+                                                <i class="fa fa-minus"></i>
+                                            </button>
+                                        </form>
+
+                                        <form asp-area="Employee"
+                                              asp-controller="Cart"
+                                              asp-action="UpdateQuantity"
+                                              method="post"
+                                              class="d-flex align-items-center">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+
+                                            <div class="input-group input-group-sm quantity-editor">
+                                                <input type="text"
+                                                       name="quantityText"
+                                                       class="form-control text-end"
+                                                       value="@GetQuantityInputValue(item.Article, item.Quantity)"
+                                                       inputmode="decimal"
+                                                       aria-label="Cantidad" />
+
+                                                <span class="input-group-text">@GetQuantityUnit(item.Article)</span>
+
+                                                <button type="submit" class="btn btn-outline-primary" title="Actualizar cantidad">
+                                                    <i class="fa fa-check"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Plus" method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+
+                                            <button type="submit" class="btn btn-quantity" title="Sumar">
+                                                <i class="fa fa-plus"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    @if (item.ExceedsStock)
                                     {
-                                        <img src="@item.Article.ImageUrl"
-                                             alt="@item.Article.Name"
-                                             style="width:64px;height:64px;object-fit:cover;border-radius:6px;" />
+                                        <span class="stock-text text-danger">
+                                            @FormatQuantity(item.Article, item.RemainingStock)
+                                        </span>
+                                    }
+                                    else if (item.ReachesMinimumStock)
+                                    {
+                                        <span class="stock-text text-warning">
+                                            @FormatQuantity(item.Article, item.RemainingStock)
+                                        </span>
                                     }
                                     else
                                     {
-                                        <div class="bg-light border d-flex align-items-center justify-content-center text-muted"
-                                             style="width:64px;height:64px;border-radius:6px;">
-                                            <i class="fa fa-image"></i>
-                                        </div>
+                                        <span class="stock-text text-success">
+                                            @FormatQuantity(item.Article, item.RemainingStock)
+                                        </span>
                                     }
 
-                                    <div>
-                                        <div class="fw-semibold">@item.Article.Name</div>
-                                        <div class="small text-muted">Codigo: @item.Article.Code</div>
-
-                                        @if (item.ExceedsStock)
-                                        {
-                                            <div class="small text-danger fw-semibold">
-                                                Stock disponible: @FormatQuantity(item.Article, item.Article.Stock)
-                                            </div>
-                                        }
-                                        else if (item.ReachesMinimumStock)
-                                        {
-                                            <div class="small text-warning fw-semibold">
-                                                Despues de vender quedara: @FormatQuantity(item.Article, item.RemainingStock)
-                                            </div>
-                                        }
+                                    <div class="small text-muted">
+                                        Stock real: @FormatQuantity(item.Article, item.Article.Stock)
                                     </div>
-                                </div>
-                            </td>
+                                </td>
 
-                            <td>$ @item.Article.Price.ToString("N2") / @GetUnitText(item.Article)</td>
+                                <td>
+                                    <span class="line-total">$ @item.LineTotal.ToString("N2")</span>
+                                </td>
 
-                            <td>
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <form asp-area="Employee" asp-controller="Cart" asp-action="Minus" method="post">
+                                <td class="text-end">
+                                    <form asp-area="Employee" asp-controller="Cart" asp-action="Remove" method="post">
                                         @Html.AntiForgeryToken()
 
                                         <input type="hidden" name="articleId" value="@item.Article.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Restar">
-                                            <i class="fa fa-minus"></i>
+
+                                        <button type="submit" class="btn btn-remove" title="Quitar">
+                                            <i class="fa fa-trash"></i>
                                         </button>
                                     </form>
-
-                                    <form asp-area="Employee"
-                                          asp-controller="Cart"
-                                          asp-action="UpdateQuantity"
-                                          method="post"
-                                          class="d-flex align-items-center">
-                                        @Html.AntiForgeryToken()
-
-                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
-                                        <div class="input-group input-group-sm" style="width: 150px;">
-                                            <input type="text"
-                                                   name="quantityText"
-                                                   class="form-control text-end"
-                                                   value="@GetQuantityInputValue(item.Article, item.Quantity)"
-                                                   inputmode="decimal"
-                                                   aria-label="Cantidad" />
-                                            <span class="input-group-text">@GetQuantityUnit(item.Article)</span>
-                                            <button type="submit" class="btn btn-outline-primary" title="Actualizar cantidad">
-                                                <i class="fa fa-check"></i>
-                                            </button>
-                                        </div>
-                                    </form>
-
-                                    <form asp-area="Employee" asp-controller="Cart" asp-action="Plus" method="post">
-                                        @Html.AntiForgeryToken()
-
-                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Sumar">
-                                            <i class="fa fa-plus"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-
-                            <td class="fw-semibold">$ @item.LineTotal.ToString("N2")</td>
-
-                            <td class="text-end">
-                                <form asp-area="Employee" asp-controller="Cart" asp-action="Remove" method="post">
-                                    @Html.AntiForgeryToken()
-
-                                    <input type="hidden" name="articleId" value="@item.Article.Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Quitar">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="border-top pt-3">
-            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+        <div class="checkout-card">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
                 <form asp-area="Employee" asp-controller="Cart" asp-action="Clear" method="post">
                     @Html.AntiForgeryToken()
 
-                    <button type="submit" class="btn btn-outline-danger">
-                        <i class="fa fa-trash me-1"></i> Vaciar carrito
+                    <button type="submit" class="btn btn-soft-danger">
+                        <i class="fa fa-trash me-2"></i> Vaciar carrito
                     </button>
                 </form>
 
-                <div class="text-lg-end">
-                    <div class="text-muted">Total</div>
-                    <div id="cartTotal"
-                         class="fs-4 fw-bold text-success"
-                         data-total="@Model.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                <div class="total-panel total-panel-compact">
+                    <span class="total-label">TOTAL:</span>
+
+                    <span id="cartTotal"
+                          class="total-amount total-amount-compact"
+                          data-total="@Model.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                         $ @Model.Total.ToString("N2")
-                    </div>
+                    </span>
                 </div>
             </div>
 
-            <form asp-area="Employee" asp-controller="Cart" asp-action="ConfirmSale" method="post">
+            <form id="confirmSaleForm"
+                  asp-area="Employee"
+                  asp-controller="Cart"
+                  asp-action="ConfirmSale"
+                  method="post">
                 @Html.AntiForgeryToken()
 
                 <div class="row g-3 align-items-stretch">
                     <div class="col-lg-6">
-                        <div class="border rounded p-3 bg-light h-100">
-                            <label for="paymentMethod" class="form-label fw-semibold">Medio de pago</label>
+                        <div class="checkout-option-card h-100">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <div class="checkout-icon">
+                                    <i class="fa fa-credit-card"></i>
+                                </div>
+                                <div>
+                                    <h3 class="checkout-title mb-0">Medio de pago</h3>
+                                    <p class="checkout-description mb-0">Seleccioná cómo se abona la venta.</p>
+                                </div>
+                            </div>
 
                             <select id="paymentMethod" name="paymentMethod" class="form-select">
                                 <option value="Efectivo" selected>Efectivo</option>
                                 <option value="Transferencia">Transferencia</option>
-                                <option value="CuentaPersonal" disabled>Cuenta personal (pr�ximamente)</option>
+                                <option value="CuentaPersonal" disabled>Cuenta personal (próximamente)</option>
                             </select>
 
-                            <div id="personalAccountNotice" class="alert alert-warning py-2 mt-3 mb-0" style="display:none;">
-                                Cuenta personal quedar� pendiente para asociar la venta a una persona y acumular deuda.
+                            <div id="personalAccountNotice" class="mini-warning mt-3" style="display:none;">
+                                Cuenta personal quedará pendiente para asociar la venta a una persona y acumular deuda.
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-6">
-                        <div class="border rounded p-3 bg-light h-100">
-                            <label for="cashReceived" class="form-label fw-semibold">Pago en efectivo</label>
+                        <div class="checkout-option-card h-100">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <div class="checkout-icon">
+                                    <i class="fa fa-money-bill-wave"></i>
+                                </div>
+                                <div>
+                                    <h3 class="checkout-title mb-0">Calculador de vuelto</h3>
+                                    <p class="checkout-description mb-0">Ingresá el monto recibido para calcular el vuelto.</p>
+                                </div>
+                            </div>
 
                             <div id="cashPaymentPanel">
-                                <div class="input-group mb-2">
+                                <div class="input-group input-group-modern mb-2">
                                     <span class="input-group-text">$</span>
+
                                     <input type="text"
                                            id="cashReceived"
                                            name="amountReceivedText"
@@ -374,7 +514,7 @@
                                            placeholder="Monto recibido" />
                                 </div>
 
-                                <div id="changeResult" class="fw-semibold text-muted">
+                                <div id="changeResult" class="change-result">
                                     Vuelto: $ 0,00
                                 </div>
                             </div>
@@ -386,12 +526,11 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end mt-3">
+                <div class="d-flex justify-content-end mt-4">
                     <button type="submit"
-                            class="btn btn-primary"
-                            style="min-width: 260px;"
+                            class="btn btn-success btn-confirm-sale"
                             @(Model.HasStockProblems ? "disabled" : "")>
-                        <i class="fa fa-check me-1"></i> Confirmar venta
+                        <i class="fa fa-check-circle me-2"></i> Confirmar venta
                     </button>
                 </div>
             </form>
@@ -399,7 +538,493 @@
     }
 </section>
 
+@if (TempData["saleSuccess"] != null)
+{
+    <div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-labelledby="saleSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content sale-success-modal border-0 shadow-lg rounded-4">
+                <div class="modal-body text-center p-5">
+                    <div class="success-check-wrapper mx-auto mb-4">
+                        <i class="fa fa-check success-check-icon"></i>
+                    </div>
+
+                    <h4 id="saleSuccessModalLabel" class="fw-bold mb-2">
+                        Venta registrada correctamente
+                    </h4>
+
+                    <p class="text-muted mb-4">
+                        La venta se realizó y el stock fue actualizado.
+                    </p>
+
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">
+                        Aceptar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
+    <style>
+        .cart-page {
+            color: #1f2937;
+        }
+
+        .cart-hero {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+            border: 1px solid #e5edf7;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .cart-hero-icon,
+        .action-icon,
+        .checkout-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8f1ff;
+            color: #0d6efd;
+            flex-shrink: 0;
+        }
+
+        .cart-eyebrow,
+        .section-kicker {
+            display: inline-block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #0d6efd;
+            margin-bottom: 2px;
+        }
+
+        .cart-title {
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #111827;
+        }
+
+        .cart-subtitle,
+        .action-description,
+        .checkout-description {
+            color: #6b7280;
+        }
+
+        .action-card,
+        .content-card,
+        .checkout-card,
+        .checkout-option-card {
+            background: #ffffff;
+            border: 1px solid #e8edf3;
+            border-radius: 22px;
+            padding: 20px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        }
+
+        .action-title,
+        .checkout-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: -0.02em;
+        }
+
+        .input-group-modern .form-control,
+        .input-group-modern .input-group-text {
+            border-color: #dbe4ef;
+            min-height: 44px;
+        }
+
+        .input-group-modern .input-group-text {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .quantity-short {
+            max-width: 130px;
+        }
+
+        .btn-modern,
+        .btn-confirm-sale {
+            border-radius: 12px;
+            font-weight: 700;
+            min-height: 44px;
+            padding-inline: 18px;
+            box-shadow: 0 8px 18px rgba(13, 110, 253, 0.18);
+        }
+
+        .btn-confirm-sale {
+            min-width: 260px;
+            box-shadow: 0 8px 18px rgba(25, 135, 84, 0.2);
+        }
+
+        .btn-modern-sm {
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .btn-soft-secondary,
+        .btn-soft-danger {
+            border-radius: 12px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .btn-soft-secondary {
+            background: #f1f5f9;
+            color: #334155;
+        }
+
+            .btn-soft-secondary:hover {
+                background: #e2e8f0;
+                color: #0f172a;
+            }
+
+        .btn-soft-danger {
+            background: #fff1f2;
+            color: #dc3545;
+            border-color: #ffe4e6;
+        }
+
+            .btn-soft-danger:hover {
+                background: #ffe4e6;
+                color: #b02a37;
+            }
+
+        .btn-icon-search {
+            min-width: 48px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .custom-table-wrapper {
+            border: 1px solid #e8edf3;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .custom-table thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid #e8edf3;
+            padding: 14px 16px;
+        }
+
+        .custom-table tbody td {
+            padding: 16px;
+            border-color: #eef2f7;
+        }
+
+        .custom-table tbody tr:hover {
+            background: #fbfdff;
+        }
+
+        .cart-product-img,
+        .cart-product-placeholder {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .cart-product-placeholder {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .quantity-editor {
+            width: 158px;
+        }
+
+        .quantity-result-input {
+            width: 82px;
+            text-align: center;
+        }
+
+        .btn-quantity {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-radius: 10px;
+            border: 1px solid #dbe4ef;
+            background: #ffffff;
+            color: #475569;
+        }
+
+            .btn-quantity:hover {
+                background: #f1f5f9;
+                color: #0f172a;
+            }
+
+        .btn-remove {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 12px;
+            border: 0;
+            background: #fff1f2;
+            color: #dc3545;
+        }
+
+            .btn-remove:hover {
+                background: #dc3545;
+                color: #fff;
+            }
+
+        .stock-text,
+        .line-total {
+            font-weight: 800;
+        }
+
+        .cart-count-pill {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            background: #eef6ff;
+            color: #0d6efd;
+            font-size: 0.88rem;
+            font-weight: 700;
+            padding: 8px 12px;
+        }
+
+        .total-panel-compact {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid #e8edf3;
+            border-radius: 14px;
+            padding: 12px 18px;
+            min-width: auto;
+            text-align: right;
+        }
+
+        .total-label {
+            color: #64748b;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .total-amount-compact {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: #198754;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+
+        .change-result {
+            font-weight: 800;
+            color: #64748b;
+        }
+
+        .mini-warning {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+            border-radius: 14px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+        }
+
+        .custom-alert-danger,
+        .custom-alert-warning {
+            border: 0;
+            border-radius: 18px;
+            padding: 14px 16px;
+            font-weight: 600;
+        }
+
+        .custom-alert-danger {
+            background: #fff1f2;
+            color: #b02a37;
+        }
+
+        .custom-alert-warning {
+            background: #fff8e1;
+            color: #8a6500;
+        }
+
+        .empty-state {
+            background: #ffffff;
+            border: 1px solid #e8edf3;
+            border-radius: 26px;
+            padding: 42px 24px;
+            text-align: center;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        }
+
+            .empty-state.compact {
+                padding: 34px 20px;
+                box-shadow: none;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            }
+
+        .main-empty {
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 20% 20%, rgba(13, 110, 253, 0.08), transparent 28%), radial-gradient(circle at 80% 30%, rgba(25, 135, 84, 0.08), transparent 26%), #ffffff;
+        }
+
+        .empty-illustration {
+            width: 96px;
+            height: 96px;
+            border-radius: 30px;
+            background: #eef6ff;
+            color: #0d6efd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+            .empty-illustration::after {
+                content: "";
+                position: absolute;
+                width: 112px;
+                height: 112px;
+                border-radius: 34px;
+                border: 1px dashed #bfd7ff;
+            }
+
+        .cart-empty {
+            background: #ecfdf5;
+            color: #198754;
+        }
+
+            .cart-empty::after {
+                border-color: #b7ebcd;
+            }
+
+        .empty-state h2,
+        .empty-state h3 {
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -0.03em;
+        }
+
+        .empty-state p {
+            color: #6b7280;
+            max-width: 520px;
+            margin: 0 auto 22px;
+        }
+
+        .empty-actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .sale-success-modal {
+            overflow: hidden;
+        }
+
+        .success-check-wrapper {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: #198754;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: successPop 0.45s ease-out;
+        }
+
+        .success-check-icon {
+            color: #fff;
+            font-size: 3rem;
+            animation: checkBounce 0.65s ease-out;
+        }
+
+        @@keyframes successPop {
+            0% {
+                transform: scale(0.4);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.12);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @@keyframes checkBounce {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.25);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .cart-hero,
+            .action-card,
+            .content-card,
+            .checkout-card,
+            .checkout-option-card {
+                border-radius: 18px;
+                padding: 16px;
+            }
+
+            .input-group-modern {
+                flex-wrap: nowrap;
+            }
+
+            .quantity-short {
+                max-width: 110px;
+            }
+
+            .total-panel {
+                width: 100%;
+                text-align: left;
+            }
+
+            .btn-confirm-sale {
+                width: 100%;
+            }
+        }
+    </style>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const codeInput = document.getElementById("codeText");
@@ -410,6 +1035,7 @@
             const cashInput = document.getElementById("cashReceived");
             const changeResult = document.getElementById("changeResult");
             const totalElement = document.getElementById("cartTotal");
+            const saleSuccessModalElement = document.getElementById("saleSuccessModal");
 
             if (codeInput) {
                 codeInput.focus();
@@ -432,18 +1058,13 @@
                 updatePaymentMethodView();
             }
 
-            if (!cashInput || !changeResult || !totalElement) {
-                return;
-            }
-
-            const total = Number(totalElement.dataset.total);
-
             function parseDecimal(value) {
                 if (!value) {
                     return NaN;
                 }
 
                 value = value.trim().replace(/\s/g, "").replace("$", "");
+
                 const hasComma = value.includes(",");
                 const hasDot = value.includes(".");
 
@@ -475,29 +1096,38 @@
                 });
             }
 
-            cashInput.addEventListener("input", function () {
-                const cashReceived = parseDecimal(cashInput.value);
+            if (cashInput && changeResult && totalElement) {
+                const total = Number(totalElement.dataset.total);
 
-                if (Number.isNaN(cashReceived)) {
-                    changeResult.textContent = "Vuelto: $ 0,00";
-                    changeResult.classList.remove("text-danger", "text-success");
-                    changeResult.classList.add("text-muted");
-                    return;
-                }
+                cashInput.addEventListener("input", function () {
+                    const cashReceived = parseDecimal(cashInput.value);
 
-                const change = cashReceived - total;
+                    if (Number.isNaN(cashReceived)) {
+                        changeResult.textContent = "Vuelto: $ 0,00";
+                        changeResult.classList.remove("text-danger", "text-success");
+                        changeResult.classList.add("text-muted");
+                        return;
+                    }
 
-                if (change < 0) {
-                    changeResult.textContent = "Faltan: $ " + formatMoney(Math.abs(change));
-                    changeResult.classList.remove("text-muted", "text-success");
-                    changeResult.classList.add("text-danger");
-                    return;
-                }
+                    const change = cashReceived - total;
 
-                changeResult.textContent = "Vuelto: $ " + formatMoney(change);
-                changeResult.classList.remove("text-muted", "text-danger");
-                changeResult.classList.add("text-success");
-            });
+                    if (change < 0) {
+                        changeResult.textContent = "Faltan: $ " + formatMoney(Math.abs(change));
+                        changeResult.classList.remove("text-muted", "text-success");
+                        changeResult.classList.add("text-danger");
+                        return;
+                    }
+
+                    changeResult.textContent = "Vuelto: $ " + formatMoney(change);
+                    changeResult.classList.remove("text-muted", "text-danger");
+                    changeResult.classList.add("text-success");
+                });
+            }
+
+            if (saleSuccessModalElement) {
+                const saleSuccessModal = new bootstrap.Modal(saleSuccessModalElement);
+                saleSuccessModal.show();
+            }
         });
     </script>
 }

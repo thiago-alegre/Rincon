@@ -76,35 +76,11 @@
                                                 <i class="fa fa-users"></i>
                                                 <span>Usuarios</span>
                                             </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Employee"
-                                               asp-controller="Stock"
-                                               asp-action="Index">
-                                                <i class="fas fa-boxes"></i>
-                                                <span>Ver stock</span>
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Admin"
-                                               asp-controller="Reports"
-                                               asp-action="Index">
-                                                <i class="fa-solid fa-file-lines"></i>
-                                                <span>Informes</span>
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Admin"
-                                               asp-controller="Analytics"
-                                               asp-action="Index">
-                                                <i class="fa-solid fa-chart-column"></i>
-                                                <span>Estadísticas</span>
+                                        </li>                                
+                                      
+                                        <li class="nav-item">
+                                            <a class="nav-link" asp-area="Admin" asp-controller="Sales" asp-action="Index">
+                                                <i class="fa fa-receipt me-1"></i> Ventas
                                             </a>
                                         </li>
                                     </ul>

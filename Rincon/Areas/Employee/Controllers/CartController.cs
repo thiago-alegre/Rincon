@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Extensions;
 using Rincon.Models;
@@ -220,13 +220,13 @@ namespace Rincon.Areas.Employee.Controllers
 
             if (!cart.Any())
             {
-                TempData["error"] = "El carrito est· vacÌo";
+                TempData["error"] = "El carrito est√° vac√≠o";
                 return RedirectToAction(nameof(Index));
             }
 
             if (paymentMethod == PaymentMethod.CuentaPersonal)
             {
-                TempData["error"] = "Cuenta personal todavÌa no est· implementada";
+                TempData["error"] = "Cuenta personal todav√≠a no est√° implementada";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -238,19 +238,19 @@ namespace Rincon.Areas.Employee.Controllers
 
                 if (article == null || !article.isActive)
                 {
-                    TempData["error"] = "Uno de los artÌculos del carrito ya no est· disponible";
+                    TempData["error"] = "Uno de los art√≠culos del carrito ya no est√° disponible";
                     return RedirectToAction(nameof(Index));
                 }
 
                 if (cartItem.Quantity <= 0)
                 {
-                    TempData["error"] = $"La cantidad de {article.Name} no es v·lida";
+                    TempData["error"] = $"La cantidad de {article.Name} no es v√°lida";
                     return RedirectToAction(nameof(Index));
                 }
 
                 if (!IsValidQuantityForArticle(article, cartItem.Quantity))
                 {
-                    TempData["error"] = $"El artÌculo {article.Name} se vende por unidad. La cantidad debe ser entera";
+                    TempData["error"] = $"El art√≠culo {article.Name} se vende por unidad. La cantidad debe ser entera";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -266,22 +266,13 @@ namespace Rincon.Areas.Employee.Controllers
             decimal? amountReceived = null;
             decimal? change = null;
 
-            if (paymentMethod == PaymentMethod.Efectivo)
+            if (!string.IsNullOrWhiteSpace(amountReceivedText))
             {
-                if (!TryParseDecimal(amountReceivedText, out decimal parsedAmountReceived))
+                if (TryParseDecimal(amountReceivedText, out decimal parsedAmountReceived))
                 {
-                    TempData["error"] = "Ingrese un monto recibido v·lido";
-                    return RedirectToAction(nameof(Index));
+                    amountReceived = parsedAmountReceived;
+                    change = parsedAmountReceived - total;
                 }
-
-                if (parsedAmountReceived < total)
-                {
-                    TempData["error"] = "El monto recibido es insuficiente";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                amountReceived = parsedAmountReceived;
-                change = parsedAmountReceived - total;
             }
 
             var claimsIdentity = User.Identity as ClaimsIdentity;
@@ -306,7 +297,7 @@ namespace Rincon.Areas.Employee.Controllers
 
                 if (article == null)
                 {
-                    TempData["error"] = "OcurriÛ un error al procesar la venta";
+                    TempData["error"] = "Ocurri√≥ un error al procesar la venta";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -328,11 +319,13 @@ namespace Rincon.Areas.Employee.Controllers
                 _workContainer.Article.Update(article);
             }
 
+
             _workContainer.Save();
 
             SaveCart(new List<ShoppingCartItemVM>());
 
-            TempData["success"] = "Venta registrada correctamente";
+            TempData["saleSuccess"] = "Venta registrada correctamente";
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -478,18 +471,11 @@ namespace Rincon.Areas.Employee.Controllers
             {
                 value = value.Replace(",", ".");
             }
-            else if (hasDot)
-            {
-                int lastDot = value.LastIndexOf(".");
-                int digitsAfterDot = value.Length - lastDot - 1;
 
-                if (digitsAfterDot == 3)
-                {
-                    value = value.Replace(".", "");
-                }
-            }
+
 
             return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
         }
     }
 }
+
