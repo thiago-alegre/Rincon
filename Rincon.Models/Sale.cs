@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Rincon.Utilities.Enums;
+﻿using Rincon.Utilities.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -29,8 +28,7 @@ namespace Rincon.Models
         public string? UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public IdentityUser? User { get; set; }
-
+        public ApplicationUser? User { get; set; }
 
         public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }

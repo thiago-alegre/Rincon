@@ -6,6 +6,7 @@ $(document).ready(function () {
 
 function loadDataTable() {
     dataTable = $('#tblArticles').DataTable({
+        pageLength: 5,
         ajax: {
             url: "/Admin/Articles/GetAll"
         },
@@ -17,7 +18,7 @@ function loadDataTable() {
                     if (data) {
                         return `
                             <div class="text-center">
-                                <img src="${data}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;" />
+                                <img src="${data}" class="product-img-sm" alt="Imagen del artículo" />
                             </div>
                         `;
                     }
@@ -66,7 +67,7 @@ function loadDataTable() {
                     const isLowStock = row.stockMin != null && Number(data) <= Number(row.stockMin);
 
                     if (isLowStock) {
-                        return `<span class="badge bg-warning text-dark">${stockText}</span>`;
+                        return `<span class="stock-badge stock-low">${stockText}</span>`;
                     }
 
                     return `<span>${stockText}</span>`;
@@ -84,10 +85,10 @@ function loadDataTable() {
                 width: "5%",
                 render: function (data) {
                     if (data === true) {
-                        return `<span class="badge bg-success">Activo</span>`;
+                        return `<span class="status-badge status-active">Activo</span>`;
                     }
 
-                    return `<span class="badge bg-danger">Inactivo</span>`;
+                    return `<span class="status-badge status-inactive">Inactivo</span>`;
                 }
             },
             {
@@ -95,12 +96,12 @@ function loadDataTable() {
                 width: "16%",
                 render: function (data) {
                     return `
-                        <div class="text-center">
-                            <a href="/Admin/Articles/Upsert/${data}" class="btn btn-success btn-sm text-white" title="Editar artículo" style="cursor:pointer">
+                        <div class="datatable-action-group">
+                            <a href="/Admin/Articles/Upsert/${data}" class="btn btn-soft-success btn-modern-sm" title="Editar artículo">
                                 <i class="fa fa-pencil" aria-hidden="true"></i>
                             </a>
-                            <a onclick=Delete("/Admin/Articles/Delete/${data}") class="btn btn-danger btn-sm text-white" title="Eliminar artículo" style="cursor:pointer">
-                            <i class="fa fa-trash" aria-hidden="true"></i>
+                            <a onclick=Delete("/Admin/Articles/Delete/${data}") class="btn btn-soft-danger btn-modern-sm" title="Eliminar artículo">
+                                <i class="fa fa-trash" aria-hidden="true"></i>
                             </a>
                         </div>
                     `;
@@ -175,7 +176,7 @@ function getPriceSuffix(row) {
 
 function renderExpirationDate(data) {
     if (!data) {
-        return `<span class="text-muted">Sin vencimiento</span>`;
+        return `<span class="expiration-badge expiration-empty">Sin vencimiento</span>`;
     }
 
     const expirationDate = new Date(data);
@@ -190,14 +191,14 @@ function renderExpirationDate(data) {
     const formattedDate = expirationDate.toLocaleDateString("es-AR");
 
     if (diffDays < 0) {
-        return `<span class="badge bg-danger">Vencido - ${formattedDate}</span>`;
+        return `<span class="expiration-badge expiration-danger">Vencido - ${formattedDate}</span>`;
     }
 
     if (diffDays <= 7) {
-        return `<span class="badge bg-warning text-dark">Por vencer - ${formattedDate}</span>`;
+        return `<span class="expiration-badge expiration-warning">Por vencer - ${formattedDate}</span>`;
     }
 
-    return `<span class="badge bg-success">Vigente - ${formattedDate}</span>`;
+    return `<span class="expiration-badge expiration-ok">Vigente - ${formattedDate}</span>`;
 }
 
 function Delete(url) {

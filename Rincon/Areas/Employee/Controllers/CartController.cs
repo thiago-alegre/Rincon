@@ -1,15 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Extensions;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
-using System.Globalization;
+using Rincon.Utilities;
 using Rincon.Utilities.Enums;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Rincon.Areas.Employee.Controllers
 {
     [Area("Employee")]
+    [Authorize(Roles = $"{SD.Role_Admin},{SD.Role_Employee}")]
     public class CartController : Controller
     {
         private const string SessionCart = "SessionShoppingCart";

@@ -4,59 +4,33 @@
     ViewData["Title"] = Model.Article.Id == 0 ? "Crear Artículo" : "Editar Artículo";
 }
 
-@section Styles {
-    <style>
-        #isActiveSwitch,
-        #isSoldByWeightSwitch {
-            width: 3rem;
-            height: 1.5rem;
-            cursor: pointer;
-        }
-
-            #isActiveSwitch:checked,
-            #isSoldByWeightSwitch:checked {
-                background-color: #198754;
-                border-color: #198754;
-            }
-
-            #isActiveSwitch:not(:checked),
-            #isSoldByWeightSwitch:not(:checked) {
-                background-color: #dc3545;
-                border-color: #dc3545;
-            }
-
-        #isActiveLabel,
-        #isSoldByWeightLabel {
-            margin-left: 0.5rem;
-        }
-
-        .article-preview-img {
-            max-width: 220px;
-            max-height: 220px;
-            object-fit: contain;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            background-color: #fff;
-        }
-    </style>
-}
-
 <form method="post" asp-action="Upsert" enctype="multipart/form-data">
     <input asp-for="Article.Id" hidden />
     <input asp-for="Article.ImageUrl" hidden />
     <input asp-for="Article.Date" hidden />
     <input asp-for="Article.UnitOfMeasure" hidden id="unitOfMeasureInput" />
 
-    <div class="container mt-4">
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">
-                    @(Model.Article.Id == 0 ? "Crear Artículo" : "Editar Artículo")
-                </h3>
+    <div class="admin-page py-4">
+        <div class="admin-hero mb-4 d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="fa fa-box-open"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Artículos</span>
+                <h1 class="admin-title h3 mb-1">
+                    @(Model.Article.Id == 0 ? "Crear artículo" : "Editar artículo")
+                </h1>
+                <p class="admin-subtitle mb-0">Cargá producto, precio, stock, vencimiento e imagen.</p>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="mb-4">
+                <span class="section-kicker">Datos principales</span>
+                <h2 class="section-title mb-0">Información del artículo</h2>
             </div>
 
-            <div class="card-body">
+            <div>
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="row">
@@ -96,12 +70,12 @@
 
                                 <div class="form-check form-switch">
                                     <input asp-for="Article.IsSoldByWeight"
-                                           class="form-check-input"
+                                           class="form-check-input admin-switch"
                                            type="checkbox"
                                            role="switch"
                                            id="isSoldByWeightSwitch" />
 
-                                    <label class="form-check-label fw-bold" id="isSoldByWeightLabel" for="isSoldByWeightSwitch">
+                                    <label class="form-check-label fw-bold admin-switch-label" id="isSoldByWeightLabel" for="isSoldByWeightSwitch">
                                         @(Model.Article.IsSoldByWeight ? "Sí, se vende por kg" : "No, se vende por unidad")
                                     </label>
                                 </div>
@@ -181,12 +155,12 @@
 
                             <div class="form-check form-switch">
                                 <input asp-for="Article.isActive"
-                                       class="form-check-input"
+                                       class="form-check-input admin-switch"
                                        type="checkbox"
                                        role="switch"
                                        id="isActiveSwitch" />
 
-                                <label class="form-check-label fw-bold" id="isActiveLabel" for="isActiveSwitch">
+                                <label class="form-check-label fw-bold admin-switch-label" id="isActiveLabel" for="isActiveSwitch">
                                     @(Model.Article.isActive ? "Activo" : "Inactivo")
                                 </label>
                             </div>
@@ -197,16 +171,14 @@
                     <div class="col-md-4 text-center">
                         <img id="imagePreview"
                              src="@(string.IsNullOrEmpty(Model.Article.ImageUrl) ? "" : Model.Article.ImageUrl)"
-                             class="article-preview-img mb-3"
-                             style="@(string.IsNullOrEmpty(Model.Article.ImageUrl) ? "display:none;" : "")" />
+                             class="article-preview-img mb-3 @(string.IsNullOrEmpty(Model.Article.ImageUrl) ? "d-none" : "")" />
 
                         <div id="noImageText"
-                             class="border rounded p-4 text-muted mb-3"
-                             style="@(!string.IsNullOrEmpty(Model.Article.ImageUrl) ? "display:none;" : "")">
+                             class="image-empty-state mb-3 @(!string.IsNullOrEmpty(Model.Article.ImageUrl) ? "d-none" : "")">
                             Sin imagen cargada
                         </div>
 
-                        <div class="alert alert-info text-start mt-3">
+                        <div class="custom-alert-info text-start mt-3">
                             <strong>Referencia:</strong>
                             <div id="unitHelpText">
                                 Este producto se vende por unidad. El precio y el costo corresponden a cada producto individual.
@@ -215,15 +187,15 @@
                     </div>
                 </div>
 
-                <div class="row mt-3">
+                <div class="row g-3 mt-3">
                     <div class="col-6">
-                        <button type="submit" class="btn btn-primary form-control">
+                        <button type="submit" class="btn btn-primary btn-modern w-100">
                             @(Model.Article.Id == 0 ? "Crear" : "Actualizar")
                         </button>
                     </div>
 
                     <div class="col-6">
-                        <a asp-area="Admin" asp-controller="Articles" asp-action="Index" class="btn btn-secondary form-control">
+                        <a asp-area="Admin" asp-controller="Articles" asp-action="Index" class="btn btn-soft-secondary w-100">
                             Volver
                         </a>
                     </div>
@@ -350,10 +322,10 @@
                     const imageUrl = URL.createObjectURL(file);
 
                     imagePreview.src = imageUrl;
-                    imagePreview.style.display = "inline-block";
+                    imagePreview.classList.remove("d-none");
 
                     if (noImageText) {
-                        noImageText.style.display = "none";
+                        noImageText.classList.add("d-none");
                     }
                 });
             }

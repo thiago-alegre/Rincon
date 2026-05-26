@@ -1,5 +1,6 @@
 ﻿$(document).ready(function () {
     $('#salesTable').DataTable({
+        pageLength: 5,
         ajax: {
             url: '/Admin/Sales/GetAll',
             type: 'GET',
@@ -19,8 +20,8 @@
                 data: 'detailUrl',
                 render: function (data) {
                     return `
-                        <div class="text-end">
-                            <a href="${data}" class="btn btn-sm btn-outline-primary rounded-pill">
+                        <div class="datatable-action-group">
+                            <a href="${data}" class="btn btn-soft-secondary btn-modern-sm">
                                 <i class="fa fa-eye me-1"></i> Ver detalle
                             </a>
                         </div>

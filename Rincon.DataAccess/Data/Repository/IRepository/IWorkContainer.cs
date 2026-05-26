@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Rincon.DataAccess.Data.Repository.IRepository
 {
@@ -12,6 +8,7 @@ namespace Rincon.DataAccess.Data.Repository.IRepository
         IArticleRepository Article { get; }
         ISaleRepository Sale { get; }
         ISaleDetailRepository SaleDetail { get; }
+
         void Save();
     }
 }

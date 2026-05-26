@@ -4,10 +4,14 @@ using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
 using System.Globalization;
+using Microsoft.AspNetCore.Authorization;
+using Rincon.Utilities;
 
 namespace Rincon.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SD.Role_Admin)]
+
     public class ArticlesController : Controller
     {
         private readonly IWorkContainer _workContainer;

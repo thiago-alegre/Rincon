@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
+using Microsoft.AspNetCore.Authorization;
+using Rincon.Utilities;
 
 namespace Rincon.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SD.Role_Admin)]
+
     public class CategoryController : Controller
     {
         private readonly IWorkContainer _workContainer;

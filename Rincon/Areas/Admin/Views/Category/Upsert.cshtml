@@ -3,42 +3,32 @@
 @{
     ViewData["Title"] = Model.Id == 0 ? "Crear Categoría" : "Editar Categoría";
 }
-@section Styles {
-    <style>
-        #isActiveSwitch {
-            width: 3rem;
-            height: 1.5rem;
-            cursor: pointer;
-        }
 
-            #isActiveSwitch:checked {
-                background-color: #198754;
-                border-color: #198754;
-            }
-
-            #isActiveSwitch:not(:checked) {
-                background-color: #dc3545;
-                border-color: #dc3545;
-            }
-
-        #isActiveLabel {
-            margin-left: 0.5rem;
-        }
-    </style>
-}
 <form method="post" asp-action="Upsert">
     <input asp-for="Id" hidden />
     <input asp-for="Date" hidden />
 
-    <div class="container mt-4">
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white">
-                <h3 class="mb-0">
-                    @(Model.Id == 0 ? "Crear Categoría" : "Editar Categoría")
-                </h3>
+    <div class="admin-page py-4">
+        <div class="admin-hero mb-4 d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="fa fa-folder-open"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Categorías</span>
+                <h1 class="admin-title h3 mb-1">
+                    @(Model.Id == 0 ? "Crear categoría" : "Editar categoría")
+                </h1>
+                <p class="admin-subtitle mb-0">Definí el nombre y el estado disponible para el catálogo.</p>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="mb-4">
+                <span class="section-kicker">Datos principales</span>
+                <h2 class="section-title mb-0">Información de la categoría</h2>
             </div>
 
-            <div class="card-body">
+            <div>
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="mb-3">
@@ -52,24 +42,24 @@
 
                     <div class="form-check form-switch">
                         <input asp-for="isActive"
-                               class="form-check-input"
+                               class="form-check-input admin-switch"
                                type="checkbox"
                                role="switch"
                                id="isActiveSwitch" />
 
-                        <label class="form-check-label fw-bold" id="isActiveLabel" for="isActiveSwitch">
+                        <label class="form-check-label fw-bold admin-switch-label" id="isActiveLabel" for="isActiveSwitch">
                             @(Model.isActive ? "Activo" : "Inactivo")
                         </label>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row g-3">
                     <div class="col-6">
-                        <button type="submit" class="btn btn-primary form-control">
+                        <button type="submit" class="btn btn-primary btn-modern w-100">
                             @(Model.Id == 0 ? "Crear" : "Actualizar")
                         </button>
                     </div>
                     <div class="col-6">
-                        <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-secondary form-control">
+                        <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-soft-secondary w-100">
                             Volver
                         </a>
                     </div>

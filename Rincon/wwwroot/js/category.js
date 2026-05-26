@@ -6,6 +6,7 @@ $(document).ready(function () {
 
 function loadDataTable() {
     dataTable = $('#tblCategories').DataTable({
+        pageLength: 5,
         ajax: {
             url: "/Admin/Category/GetAll"
         },
@@ -25,9 +26,9 @@ function loadDataTable() {
                 width: "20%",
                 render: function (data) {
                     if (data === true) {
-                        return `<span class="badge bg-success">Activo</span>`;
+                        return `<span class="status-badge status-active">Activo</span>`;
                     } else {
-                        return `<span class="badge bg-danger">Inactivo</span>`;
+                        return `<span class="status-badge status-inactive">Inactivo</span>`;
                     }
                 }
             },
@@ -36,12 +37,12 @@ function loadDataTable() {
                 width: "25%",
                 render: function (data) {
                     return `
-                        <div class="text-center">
-                            <a href="/Admin/Category/Upsert/${data}" class="btn btn-success text-white" style="cursor:pointer">
-                                Editar
+                        <div class="datatable-action-group">
+                            <a href="/Admin/Category/Upsert/${data}" class="btn btn-soft-success btn-modern-sm" title="Editar categoría">
+                                <i class="fa fa-pencil me-1" aria-hidden="true"></i> Editar
                             </a>
-                            <a onclick=Delete("/Admin/Category/Delete/${data}") class="btn btn-danger text-white" style="cursor:pointer">
-                                Eliminar
+                            <a onclick=Delete("/Admin/Category/Delete/${data}") class="btn btn-soft-danger btn-modern-sm" title="Eliminar categoría">
+                                <i class="fa fa-trash me-1" aria-hidden="true"></i> Eliminar
                             </a>
                         </div>
                     `;

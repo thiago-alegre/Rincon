@@ -2,34 +2,51 @@
     ViewData["Title"] = "Artículos";
 }
 
-<div class="container mt-4">
-    <div class="row mb-3">
-        <div class="col-6">
-            <h2 class="text-primary">Lista de Artículos</h2>
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="fa fa-box-open"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Administración</span>
+                <h1 class="admin-title h3 mb-1">Artículos</h1>
+                <p class="admin-subtitle mb-0">Gestioná productos, precios, stock y vencimientos.</p>
+            </div>
         </div>
-        <div class="col-6 text-end">
-            <a asp-area="Admin" asp-controller="Articles" asp-action="Upsert" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Crear nuevo artículo
-            </a>
-        </div>
+
+        <a asp-area="Admin" asp-controller="Articles" asp-action="Upsert" class="btn btn-primary btn-modern">
+            <i class="bi bi-plus-circle me-1"></i> Crear artículo
+        </a>
     </div>
 
-    <table id="tblArticles" class="table table-bordered table-striped" style="width:100%">
-        <thead>
-            <tr>
-                <th>Imagen</th>
-                <th>Nombre</th>
-                <th>Código</th>
-                <th>Categoría</th>
-                <th>Precio</th>
-                <th>Costo</th>
-                <th>Stock</th>
-                <th>Vencimiento</th>
-                <th>Estado</th>
-                <th></th>
-            </tr>
-        </thead>
-    </table>
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Listado</span>
+                <h2 class="section-title mb-0">Lista de artículos</h2>
+            </div>
+        </div>
+
+        <div class="custom-table-wrapper">
+            <table id="tblArticles" class="table custom-table mb-0 w-100">
+                <thead>
+                    <tr>
+                        <th>Imagen</th>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th>Costo</th>
+                        <th>Stock</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
 </div>
 
 @section Scripts {

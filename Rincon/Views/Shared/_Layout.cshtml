@@ -1,4 +1,9 @@
-﻿<!DOCTYPE html>
+﻿@using Rincon.Utilities
+@using Microsoft.AspNetCore.Identity
+@using Rincon.Models
+
+@inject UserManager<ApplicationUser> UserManager
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
@@ -14,6 +19,7 @@
     <!-- Estilos propios -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Rincon.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/rincon-ui.css" asp-append-version="true" />
 
     <!-- Librerías -->
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.0/css/dataTables.dataTables.min.css" />
@@ -27,115 +33,115 @@
     <header>
         @if (!Context.Request.Path.StartsWithSegments("/Identity/Account/Login"))
         {
-            <nav class="navbar navbar-expand-lg bg-dark py-2" data-bs-theme="dark">
-                <div class="container-fluid">
-                    <div class="row w-100 align-items-center">
+            var currentUser = User.Identity != null && User.Identity.IsAuthenticated
+            ? await UserManager.GetUserAsync(User)
+            : null;
 
-                        <div class="col-auto d-flex align-items-center gap-3">
-                            <a class="navbar-brand" asp-area="Employee" asp-controller="Cart" asp-action="Index">
-                                <img src="~/imagenes/taba.png" class="img-fluid" style="max-width: 130px;" />
-                            </a>
+            var displayName = currentUser?.FullName ?? currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "Usuario";
 
-                            @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("Administrador"))
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm mb-4">
+                <div class="container-fluid px-4">
+
+                    <a class="navbar-brand fw-bold d-flex align-items-center gap-2"
+                       asp-area="Employee"
+                       asp-controller="Cart"
+                       asp-action="Index">
+                        <i class="bi bi-shop"></i>
+                        <span>Rincon</span>
+                    </a>
+
+                    <button class="navbar-toggler"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#mainNavbar"
+                            aria-controls="mainNavbar"
+                            aria-expanded="false"
+                            aria-label="Mostrar navegación">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="mainNavbar">
+
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                            @if (User.Identity != null && User.Identity.IsAuthenticated)
                             {
-                                <div class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle text-white fw-semibold"
-                                       href="#"
-                                       role="button"
-                                       data-bs-toggle="dropdown"
-                                       aria-expanded="false">
-                                        <i class="fa fa-bars" aria-hidden="true"></i> Contenidos
-                                    </a>
-
-                                    <ul class="dropdown-menu">
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Admin"
-                                               asp-controller="Category"
-                                               asp-action="Index">
-                                                <i class="fa fa-folder-open"></i>
-                                                <span>Categorías</span>
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Admin"
-                                               asp-controller="Articles"
-                                               asp-action="Index">
-                                                <i class="fa fa-th-list"></i>
-                                                <span>Artículos</span>
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2"
-                                               asp-area="Admin"
-                                               asp-controller="Users"
-                                               asp-action="Index">
-                                                <i class="fa fa-users"></i>
-                                                <span>Usuarios</span>
-                                            </a>
-                                        </li>                                
-                                      
-                                        <li class="nav-item">
-                                            <a class="nav-link" asp-area="Admin" asp-controller="Sales" asp-action="Index">
-                                                <i class="fa fa-receipt me-1"></i> Ventas
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            }
-                            else if (User.Identity != null && User.Identity.IsAuthenticated)
-                            {
-                                <a class="btn d-flex align-items-center text-white"
-                                   asp-area="Employee"
-                                   asp-controller="Stock"
-                                   asp-action="Index">
-                                    <i class="fas fa-boxes me-1"></i> Ver stock
-                                </a>
-                            }
-                        </div>
-
-                        <div class="col text-center">
-                            <div class="d-flex justify-content-center align-items-center gap-2">
-                                <form asp-area="Employee"
-                                      asp-controller="Cart"
-                                      asp-action="Index"
-                                      method="get"
-                                      class="d-flex justify-content-center flex-grow-1">
-
-                                    <input class="form-control rounded-start"
-                                           type="search"
-                                           name="searchString"
-                                           placeholder="¿Qué deseas buscar?"
-                                           aria-label="Buscar"
-                                           value="@ViewBag.CurrentSearch" />
-
-                                    <button class="btn btn-outline-light rounded-end" type="submit">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </form>
-
-                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                @if (User.IsInRole(SD.Role_Admin))
                                 {
-                                    <a asp-area="Employee"
-                                       asp-controller="Cart"
-                                       asp-action="Index"
-                                       class="btn btn-outline-light position-relative flex-shrink-0"
-                                       title="Ver carrito">
-                                        <i class="fa fa-shopping-cart"></i>
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count-badge">
-                                            0
-                                        </span>
-                                    </a>
-                                }
-                            </div>
-                        </div>
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-area="Admin" asp-controller="Sales" asp-action="Index">
+                                            <i class="bi bi-receipt me-1"></i> Ventas
+                                        </a>
+                                    </li>
 
-                        <div class="col-auto d-flex align-items-center gap-3">
-                            <partial name="_LoginPartial" />
-                        </div>
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Index">
+                                            <i class="bi bi-tags me-1"></i> Categorías
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-area="Admin" asp-controller="Articles" asp-action="Index">
+                                            <i class="bi bi-box-seam me-1"></i> Artículos
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-area="Admin" asp-controller="Users" asp-action="Index">
+                                            <i class="bi bi-people me-1"></i> Usuarios
+                                        </a>
+                                    </li>
+                                }
+
+                                @if (User.IsInRole(SD.Role_Employee) || User.IsInRole(SD.Role_Admin))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-area="Employee" asp-controller="Cart" asp-action="Index">
+                                            <i class="bi bi-cart me-1"></i> Carrito
+                                        </a>
+                                    </li>
+                                }
+                            }
+
+                        </ul>
+
+                        <ul class="navbar-nav ms-auto align-items-center">
+                            @if (User.Identity != null && User.Identity.IsAuthenticated)
+                            {
+                                <li class="nav-item me-3">
+                                    <span class="nav-link fw-semibold d-flex align-items-center gap-2">
+                                        @displayName
+                                        <i class="bi bi-person-circle fs-5"></i>
+                                    </span>
+                                </li>
+
+                                <li class="nav-item">
+                                    <form asp-area="Identity"
+                                          asp-page="/Account/Logout"
+                                          method="post"
+                                          class="d-inline">
+
+                                        <button id="logoutBtn"
+                                                type="submit"
+                                                class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2">
+                                            <i class="bi bi-box-arrow-right"></i>
+                                            <span>Salir</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="btn btn-outline-primary btn-sm"
+                                       asp-area="Identity"
+                                       asp-page="/Account/Login">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                                        Iniciar sesión
+                                    </a>
+                                </li>
+                            }
+                        </ul>
 
                     </div>
                 </div>
@@ -148,24 +154,6 @@
             @RenderBody()
         </main>
     </div>
-
-    @if (User.Identity != null &&
-        User.Identity.IsAuthenticated &&
-        !Context.Request.Path.StartsWithSegments("/Employee/Cart"))
-    {
-        <a asp-area="Employee"
-           asp-controller="Cart"
-           asp-action="Index"
-           class="btn position-fixed d-flex justify-content-center align-items-center shadow"
-           style="bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; z-index: 1050; background-color: #523500">
-
-            <i class="fa fa-shopping-cart fa-lg" style="color: #ebd2a5;"></i>
-
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count-badge">
-                0
-            </span>
-        </a>
-    }
 
     <!-- Scripts base -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -196,29 +184,6 @@
     }
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const cartCountBadges = document.querySelectorAll(".cart-count-badge");
-
-            if (cartCountBadges.length > 0) {
-                fetch("/Employee/Cart/GetCartCount")
-                    .then(res => res.json())
-                    .then(data => {
-                        cartCountBadges.forEach(badge => {
-                            badge.innerText = data.count;
-                            badge.style.display = data.count > 0 ? "inline-block" : "none";
-                        });
-                    })
-                    .catch(() => {
-                        cartCountBadges.forEach(badge => {
-                            badge.innerText = "0";
-                            badge.style.display = "none";
-                        });
-                    });
-            }
-        });
-    </script>
-
-    <script>
         document.addEventListener("click", function (ev) {
             const btn = ev.target.closest("#logoutBtn");
 
@@ -241,7 +206,7 @@
                 showCancelButton: true,
                 confirmButtonText: "Sí, cerrar",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#523500",
+                confirmButtonColor: "#0d6efd",
                 cancelButtonColor: "#6c757d"
             }).then(res => {
                 if (res.isConfirmed) {

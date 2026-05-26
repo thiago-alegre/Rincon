@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
+using Microsoft.AspNetCore.Authorization;
+using Rincon.Utilities;
 
 namespace Rincon.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SD.Role_Admin)]
     public class SalesController : Controller
     {
         private readonly IWorkContainer _workContainer;
@@ -46,7 +49,9 @@ namespace Rincon.Areas.Admin.Controllers
                 date = s.Date.ToString("dd/MM/yyyy HH:mm"),
                 total = s.Total.ToString("N2"),
                 paymentMethod = s.PaymentMethod.ToString(),
-                user = s.User != null ? s.User.Email : "Sin usuario",
+                user = s.User != null
+                    ? (!string.IsNullOrWhiteSpace(s.User.FullName) ? s.User.FullName : s.User.Email)
+                    : "Sin usuario",
                 detailUrl = Url.Action("Detail", "Sales", new { area = "Admin", id = s.Id })
             });
 
