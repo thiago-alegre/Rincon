@@ -202,13 +202,10 @@ function renderExpirationDate(data) {
 }
 
 function Delete(url) {
-    Swal.fire({
-        title: "¿Está seguro?",
+    rinconConfirm({
+        title: "Eliminar artículo",
         text: "El artículo se eliminará permanentemente",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#6c757d",
+        icon: "question",
         confirmButtonText: "Sí, eliminar",
         cancelButtonText: "Cancelar"
     }).then((result) => {

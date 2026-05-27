@@ -1,10 +1,33 @@
 @page
 @model AccessDeniedModel
+
 @{
-    ViewData["Title"] = "Access denied";
+    ViewData["Title"] = "Acceso denegado";
 }
 
-<header>
-    <h1 class="text-danger">@ViewData["Title"]</h1>
-    <p class="text-danger">You do not have access to this resource.</p>
-</header>
+<section class="auth-status-page">
+    <div class="auth-status-card">
+        <div class="auth-status-icon danger">
+            <i class="fa fa-ban"></i>
+        </div>
+
+        <span class="auth-kicker">Permisos insuficientes</span>
+        <h1 class="auth-status-title h2 mt-2 mb-3">Acceso denegado</h1>
+
+        <p class="auth-status-text">
+            Tu usuario no tiene permiso para ingresar a esta sección. Volvé a tu pantalla principal o consultá con un administrador.
+        </p>
+
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a asp-area="Employee" asp-controller="Cart" asp-action="Index" class="btn btn-primary btn-modern">
+                <i class="fa fa-cart-shopping me-2"></i> Ir al carrito
+            </a>
+
+            <form asp-area="Identity" asp-page="/Account/Logout" method="post">
+                <button type="submit" class="btn btn-soft-secondary">
+                    <i class="fa fa-right-to-bracket me-2"></i> Cambiar usuario
+                </button>
+            </form>
+        </div>
+    </div>
+</section>

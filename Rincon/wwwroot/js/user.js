@@ -98,13 +98,10 @@ function getRoleDisplayName(role) {
 }
 
 function toggleUserStatus(id) {
-    Swal.fire({
+    rinconConfirm({
         title: '¿Cambiar estado del usuario?',
         text: 'El acceso del usuario será actualizado.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#0d6efd',
-        cancelButtonColor: '#6c757d',
+        icon: 'question',
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {

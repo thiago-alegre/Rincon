@@ -1,10 +1,27 @@
 @page
 @model LockoutModel
+
 @{
-    ViewData["Title"] = "Locked out";
+    ViewData["Title"] = "Cuenta bloqueada";
 }
 
-<header>
-    <h1 class="text-danger">@ViewData["Title"]</h1>
-    <p class="text-danger">This account has been locked out, please try again later.</p>
-</header>
+<section class="auth-status-page">
+    <div class="auth-status-card">
+        <div class="auth-status-icon warning">
+            <i class="fa fa-lock"></i>
+        </div>
+
+        <span class="auth-kicker">Acceso bloqueado</span>
+        <h1 class="auth-status-title h2 mt-2 mb-3">Cuenta bloqueada</h1>
+
+        <p class="auth-status-text">
+            Este usuario se encuentra bloqueado temporalmente o deshabilitado para operar. Contactá a un administrador para recuperar el acceso.
+        </p>
+
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-modern">
+                <i class="fa fa-arrow-left me-2"></i> Volver al login
+            </a>
+        </div>
+    </div>
+</section>

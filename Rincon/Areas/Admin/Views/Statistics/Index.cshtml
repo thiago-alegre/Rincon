@@ -1,0 +1,330 @@
+@model Rincon.Models.ViewModels.StatisticsVM
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Estadísticas";
+
+    var selectedMetricLabel = Model.Metric == "amount" ? "Monto" : "Cantidad";
+    var periodTitle = Model.GroupBy switch
+    {
+        "monthly" => "Ventas por mes",
+        "yearly" => "Ventas por año",
+        _ => "Ventas por día"
+    };
+
+    var chartOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    var periodLabels = JsonSerializer.Serialize(Model.PeriodSeries.Select(x => x.Period), chartOptions);
+    var periodValues = JsonSerializer.Serialize(Model.PeriodSeries.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
+    var categoryLabels = JsonSerializer.Serialize(Model.CategoryDistribution.Select(x => x.Category), chartOptions);
+    var categoryValues = JsonSerializer.Serialize(Model.CategoryDistribution.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
+    var productLabels = JsonSerializer.Serialize(Model.TopProducts.Select(x => x.Product), chartOptions);
+    var productValues = JsonSerializer.Serialize(Model.TopProducts.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
+}
+
+@functions {
+    private string FormatStock(decimal value, string unitOfMeasure)
+    {
+        if (unitOfMeasure == "Kilogramo")
+        {
+            return $"{value:N2} kg";
+        }
+
+        return $"{value:N0} u";
+    }
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Administración</span>
+                <h1 class="admin-title h3 mb-1">Estadísticas</h1>
+                <p class="admin-subtitle mb-0">Resumen financiero, productos vendidos, categorías y alertas de stock.</p>
+            </div>
+        </div>
+
+        <a asp-area="Admin"
+           asp-controller="Statistics"
+           asp-action="ExportCsv"
+           asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")"
+           asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")"
+           asp-route-groupBy="@Model.GroupBy"
+           asp-route-metric="@Model.Metric"
+           class="btn btn-primary btn-modern">
+            <i class="fa fa-file-csv me-2"></i> Exportar CSV
+        </a>
+    </div>
+
+    <form method="get" class="stats-filter-bar mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3 col-xl-2">
+                <label class="stats-filter-label mb-1" for="dateFrom">Desde</label>
+                <input id="dateFrom" name="dateFrom" type="date" class="form-control" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-md-3 col-xl-2">
+                <label class="stats-filter-label mb-1" for="dateTo">Hasta</label>
+                <input id="dateTo" name="dateTo" type="date" class="form-control" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-md-3 col-xl-2">
+                <label class="stats-filter-label mb-1" for="groupBy">Agrupación</label>
+                <select id="groupBy" name="groupBy" class="form-select">
+                    <option value="daily" selected="@(Model.GroupBy == "daily" ? "selected" : null)">Diaria</option>
+                    <option value="monthly" selected="@(Model.GroupBy == "monthly" ? "selected" : null)">Mensual</option>
+                    <option value="yearly" selected="@(Model.GroupBy == "yearly" ? "selected" : null)">Anual</option>
+                </select>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <label class="stats-filter-label mb-1">Métrica</label>
+                <div class="stats-segmented">
+                    <input id="metricAmount" type="radio" name="metric" value="amount" checked="@(Model.Metric == "amount" ? "checked" : null)" />
+                    <label for="metricAmount">Monto</label>
+                    <input id="metricQuantity" type="radio" name="metric" value="quantity" checked="@(Model.Metric == "quantity" ? "checked" : null)" />
+                    <label for="metricQuantity">Cantidad</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-xl-3 text-md-end">
+                <button type="submit" class="btn btn-primary btn-modern">
+                    <i class="fa fa-filter me-2"></i> Aplicar filtros
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Facturación total</div>
+                <div class="detail-metric-value success">$ @Model.Summary.TotalRevenue.ToString("N2")</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Ventas</div>
+                <div class="detail-metric-value">@Model.Summary.SalesCount</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Ticket promedio</div>
+                <div class="detail-metric-value">$ @Model.Summary.AverageTicket.ToString("N2")</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Ganancia estimada</div>
+                <div class="detail-metric-value">$ @Model.Summary.EstimatedProfit.ToString("N2")</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Productos vendidos</div>
+                <div class="detail-metric-value">@Model.Summary.TotalProductsSold.ToString("N2")</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Producto más vendido</div>
+                <div class="detail-metric-value">@Model.Summary.BestSellingProduct</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Mayor facturación</div>
+                <div class="detail-metric-value">@Model.Summary.TopRevenueProduct</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-7">
+            <div class="stats-chart-card">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <span class="section-kicker">@selectedMetricLabel</span>
+                        <h2 class="section-title mb-0">@periodTitle</h2>
+                    </div>
+                </div>
+                <div class="stats-chart-box">
+                    <canvas id="periodChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="stats-chart-card">
+                <div class="mb-3">
+                    <span class="section-kicker">@selectedMetricLabel</span>
+                    <h2 class="section-title mb-0">Distribución por categoría</h2>
+                </div>
+                <div class="stats-chart-box">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-8">
+            <div class="stats-chart-card">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <span class="section-kicker">Top 10</span>
+                        <h2 class="section-title mb-0">Top productos por @selectedMetricLabel.ToLower()</h2>
+                    </div>
+                </div>
+                <div class="stats-chart-box tall">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="stats-chart-card">
+                <div class="mb-3">
+                    <span class="section-kicker">Stock mínimo</span>
+                    <h2 class="section-title mb-0">Bajo stock</h2>
+                </div>
+
+                @if (!Model.LowStockItems.Any())
+                {
+                    <div class="empty-state compact">
+                        <h3>Stock saludable</h3>
+                        <p>No hay productos cerca del mínimo en este momento.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="stats-low-stock-list">
+                        @foreach (var item in Model.LowStockItems)
+                        {
+                            <div class="stats-low-stock-item">
+                                <div>
+                                    <div class="fw-semibold">@item.Product</div>
+                                    <div class="small text-muted">
+                                        Stock: @FormatStock(item.Stock, item.UnitOfMeasure) · Mínimo: @FormatStock(item.StockMin, item.UnitOfMeasure)
+                                    </div>
+                                </div>
+                                <span class="stock-alert-badge @item.Status">
+                                    @item.StatusText
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="text-end mt-3">
+                    <a asp-area="Admin" asp-controller="Articles" asp-action="Index" class="btn btn-soft-secondary">
+                        Ver todo el stock
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const selectedMetric = "@Model.Metric";
+        const currencyFormatter = new Intl.NumberFormat("es-AR", {
+            style: "currency",
+            currency: "ARS"
+        });
+        const numberFormatter = new Intl.NumberFormat("es-AR", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        });
+
+        function formatMetric(value) {
+            return selectedMetric === "amount"
+                ? currencyFormatter.format(value)
+                : numberFormatter.format(value);
+        }
+
+        const chartColors = ["#0d6efd", "#198754", "#ff6384", "#ff9f40", "#8b5cf6", "#20c997", "#64748b", "#ffc107"];
+
+        new Chart(document.getElementById("periodChart"), {
+            type: "line",
+            data: {
+                labels: @Html.Raw(periodLabels),
+                datasets: [{
+                    label: "@selectedMetricLabel",
+                    data: @Html.Raw(periodValues),
+                    borderColor: "#0d6efd",
+                    backgroundColor: "rgba(13, 110, 253, 0.16)",
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { callbacks: { label: ctx => formatMetric(ctx.parsed.y) } }
+                },
+                scales: {
+                    y: { ticks: { callback: value => formatMetric(value) } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById("categoryChart"), {
+            type: "doughnut",
+            data: {
+                labels: @Html.Raw(categoryLabels),
+                datasets: [{
+                    data: @Html.Raw(categoryValues),
+                    backgroundColor: chartColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatMetric(ctx.parsed)}` } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById("topProductsChart"), {
+            type: "bar",
+            data: {
+                labels: @Html.Raw(productLabels),
+                datasets: [{
+                    label: "@selectedMetricLabel",
+                    data: @Html.Raw(productValues),
+                    backgroundColor: "rgba(13, 110, 253, 0.42)",
+                    borderColor: "#0d6efd",
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { callbacks: { label: ctx => formatMetric(ctx.parsed.y) } }
+                },
+                scales: {
+                    x: { ticks: { maxRotation: 45, minRotation: 25 } },
+                    y: { ticks: { callback: value => formatMetric(value) } }
+                }
+            }
+        });
+
+    </script>
+}
