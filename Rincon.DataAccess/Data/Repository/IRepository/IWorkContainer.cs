@@ -8,6 +8,7 @@ namespace Rincon.DataAccess.Data.Repository.IRepository
         IArticleRepository Article { get; }
         ISaleRepository Sale { get; }
         ISaleDetailRepository SaleDetail { get; }
+        ICashRegisterSessionRepository CashRegisterSession { get; }
 
         void Save();
     }

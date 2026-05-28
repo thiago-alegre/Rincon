@@ -5,6 +5,9 @@
     var userName = Model.User != null
         ? (!string.IsNullOrWhiteSpace(Model.User.FullName) ? Model.User.FullName : Model.User.Email)
         : "Sin usuario";
+    var cashRegisterLabel = Model.CashRegisterSession != null
+        ? $"Caja #{Model.CashRegisterSession.Id}"
+        : "Sin caja asociada";
 }
 
 <div class="admin-page py-4">
@@ -28,24 +31,31 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="detail-metric-card">
                 <div class="detail-metric-label">Total</div>
                 <div class="detail-metric-value success">$ @Model.Total.ToString("N2")</div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="detail-metric-card">
                 <div class="detail-metric-label">Medio de pago</div>
                 <div class="detail-metric-value">@Model.PaymentMethod</div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="detail-metric-card">
                 <div class="detail-metric-label">Usuario</div>
                 <div class="detail-metric-value">@userName</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Caja</div>
+                <div class="detail-metric-value">@cashRegisterLabel</div>
             </div>
         </div>
     </div>

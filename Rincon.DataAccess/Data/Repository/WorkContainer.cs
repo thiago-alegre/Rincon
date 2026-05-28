@@ -11,6 +11,7 @@ namespace Rincon.DataAccess.Data.Repository
         public IArticleRepository Article { get; private set; }
         public ISaleRepository Sale { get; private set; }
         public ISaleDetailRepository SaleDetail { get; private set; }
+        public ICashRegisterSessionRepository CashRegisterSession { get; private set; }
 
         public WorkContainer(ApplicationDbContext db)
         {
@@ -20,6 +21,7 @@ namespace Rincon.DataAccess.Data.Repository
             Article = new ArticleRepository(_db);
             Sale = new SaleRepository(_db);
             SaleDetail = new SaleDetailRepository(_db);
+            CashRegisterSession = new CashRegisterSessionRepository(_db);
         }
 
         public void Save()

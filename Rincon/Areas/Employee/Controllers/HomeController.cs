@@ -1,11 +1,14 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
+using Rincon.Utilities;
 
 namespace Rincon.Areas.Employee.Controllers
 {
     [Area("Employee")]
+    [Authorize(Roles = $"{SD.Role_Admin},{SD.Role_Employee}")]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

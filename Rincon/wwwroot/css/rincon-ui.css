@@ -455,6 +455,57 @@ table.dataTable tbody td {
     border: 1px solid #fecdd3;
 }
 
+/* SALES */
+
+.sales-hero-filters {
+    display: grid;
+    grid-template-columns: minmax(190px, 1fr) minmax(160px, 0.85fr) auto;
+    align-items: end;
+    gap: 12px;
+    width: min(620px, 100%);
+}
+
+.sales-filter-field label {
+    color: #475569;
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.sales-filter-field .form-control,
+.sales-filter-field .form-select {
+    min-height: 44px;
+    border-radius: 12px;
+}
+
+/* CASH REGISTER */
+
+.cash-inline-form,
+.cash-close-form {
+    display: grid;
+    gap: 10px;
+}
+
+.cash-inline-form {
+    grid-template-columns: minmax(180px, 240px) auto;
+}
+
+.cash-close-form {
+    grid-template-columns: minmax(170px, 220px) minmax(220px, 1fr) auto;
+    width: min(720px, 100%);
+}
+
+.cash-inline-form .form-control,
+.cash-close-form .form-control,
+.cash-inline-form .input-group-text,
+.cash-close-form .input-group-text {
+    min-height: 44px;
+    border-radius: 12px;
+}
+
 /* BADGES */
 
 .role-badge,
@@ -1113,6 +1164,16 @@ table.dataTable tbody td {
 /* RESPONSIVE */
 
 @media (max-width: 768px) {
+    .sales-hero-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .cash-inline-form,
+    .cash-close-form {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
     .auth-page,
     .auth-status-page {
         min-height: auto;

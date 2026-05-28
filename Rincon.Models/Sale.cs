@@ -30,6 +30,11 @@ namespace Rincon.Models
         [ForeignKey("UserId")]
         public ApplicationUser? User { get; set; }
 
+        public int? CashRegisterSessionId { get; set; }
+
+        [ForeignKey("CashRegisterSessionId")]
+        public CashRegisterSession? CashRegisterSession { get; set; }
+
         public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }

@@ -1,9 +1,11 @@
-﻿@{
+@model Rincon.Models.ViewModels.SalesIndexVM
+
+@{
     ViewData["Title"] = "Historial de ventas";
 }
 
 <div class="admin-page py-4">
-    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+    <div class="admin-hero mb-4 d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
         <div class="d-flex align-items-center gap-3">
             <div class="admin-hero-icon">
                 <i class="fa fa-receipt"></i>
@@ -13,6 +15,33 @@
                 <h1 class="admin-title h3 mb-1">Historial de ventas</h1>
                 <p class="admin-subtitle mb-0">Consultá las ventas realizadas y el usuario que las registró.</p>
             </div>
+        </div>
+
+        <div class="sales-hero-filters">
+            <div class="sales-filter-field">
+                <label for="saleUserFilter">Usuario</label>
+                <select id="saleUserFilter" class="form-select">
+                    <option value="">Todos los usuarios</option>
+                    @foreach (var user in Model.UserList)
+                    {
+                        <option value="@user.Value" selected="@(Model.UserId == user.Value ? "selected" : null)">
+                            @user.Text
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="sales-filter-field">
+                <label for="saleDateFilter">Fecha</label>
+                <input id="saleDateFilter"
+                       type="date"
+                       class="form-control"
+                       value="@(Model.SaleDate.HasValue ? Model.SaleDate.Value.ToString("yyyy-MM-dd") : string.Empty)" />
+            </div>
+
+            <button id="clearSalesFilters" type="button" class="btn btn-soft-secondary">
+                <i class="fa fa-rotate-left me-1"></i> Eliminar filtros
+            </button>
         </div>
     </div>
 

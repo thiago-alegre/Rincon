@@ -1,0 +1,153 @@
+@model Rincon.Models.ViewModels.CashRegisterVM
+
+@{
+    ViewData["Title"] = "Caja";
+
+    string GetUserName(Rincon.Models.CashRegisterSession session)
+    {
+        return session.User != null
+            ? (!string.IsNullOrWhiteSpace(session.User.FullName) ? session.User.FullName : session.User.Email ?? "Sin usuario")
+            : "Sin usuario";
+    }
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Turno</span>
+                <h1 class="admin-title h3 mb-1">Caja</h1>
+                <p class="admin-subtitle mb-0">Abrí y cerrá la caja del turno para controlar el efectivo real.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.OpenSession == null)
+    {
+        <div class="content-card mb-4">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div>
+                    <span class="section-kicker">Apertura</span>
+                    <h2 class="section-title mb-1">No hay caja abierta</h2>
+                    <p class="text-muted mb-0">Ingresá el efectivo inicial para comenzar a vender en este turno.</p>
+                </div>
+
+                <form asp-area="Employee" asp-controller="CashRegister" asp-action="Open" method="post" class="cash-inline-form">
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input name="OpeningAmountText" class="form-control" placeholder="Efectivo inicial" autocomplete="off" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-modern">
+                        <i class="bi bi-unlock me-1"></i> Abrir caja
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Monto inicial</div>
+                    <div class="detail-metric-value">$ @Model.OpenSession.OpeningAmount.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Efectivo vendido</div>
+                    <div class="detail-metric-value">$ @Model.CurrentSummary.CashSales.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Efectivo esperado</div>
+                    <div class="detail-metric-value success">$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Ventas del turno</div>
+                    <div class="detail-metric-value">@Model.CurrentSummary.SalesCount</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card mb-4">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <span class="section-kicker">Caja abierta</span>
+                    <h2 class="section-title mb-1">@GetUserName(Model.OpenSession)</h2>
+                    <p class="text-muted mb-0">Abierta el @Model.OpenSession.OpenedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+
+                <form asp-area="Employee" asp-controller="CashRegister" asp-action="Close" method="post" class="cash-close-form">
+                    <input type="hidden" name="Id" value="@Model.OpenSession.Id" />
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input name="CountedCashAmountText" class="form-control" placeholder="Efectivo contado" autocomplete="off" />
+                    </div>
+                    <input name="Notes" class="form-control" placeholder="Observación opcional" maxlength="500" />
+                    <button type="submit" class="btn btn-danger btn-modern">
+                        <i class="bi bi-lock me-1"></i> Cerrar caja
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Historial</span>
+                <h2 class="section-title mb-0">Cajas recientes</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive custom-table-wrapper">
+            <table class="table custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Apertura</th>
+                        <th>Cierre</th>
+                        <th>Monto inicial</th>
+                        <th>Efectivo esperado</th>
+                        <th>Efectivo contado</th>
+                        <th>Diferencia</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var session in Model.Sessions)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@GetUserName(session)</td>
+                            <td>@session.OpenedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(session.ClosedAt.HasValue ? session.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")</td>
+                            <td>$ @session.OpeningAmount.ToString("N2")</td>
+                            <td>@(session.ExpectedCashAmount.HasValue ? $"$ {session.ExpectedCashAmount.Value:N2}" : "-")</td>
+                            <td>@(session.CountedCashAmount.HasValue ? $"$ {session.CountedCashAmount.Value:N2}" : "-")</td>
+                            <td class="fw-bold @(session.Difference < 0 ? "text-danger" : session.Difference > 0 ? "text-success" : "")">
+                                @(session.Difference.HasValue ? $"$ {session.Difference.Value:N2}" : "-")
+                            </td>
+                            <td>
+                                @if (session.IsOpen)
+                                {
+                                    <span class="status-badge active">Abierta</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge inactive">Cerrada</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

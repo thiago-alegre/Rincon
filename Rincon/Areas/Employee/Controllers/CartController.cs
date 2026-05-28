@@ -281,6 +281,15 @@ namespace Rincon.Areas.Employee.Controllers
             var claimsIdentity = User.Identity as ClaimsIdentity;
             var userId = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            var openCashRegister = _workContainer.CashRegisterSession.GetFirstOrDefault(
+                s => s.UserId == userId && s.ClosedAt == null);
+
+            if (openCashRegister == null)
+            {
+                TempData["error"] = "Debe abrir una caja antes de confirmar ventas";
+                return RedirectToAction(nameof(Index));
+            }
+
             var sale = new Sale
             {
                 Date = DateTime.Now,
@@ -288,7 +297,8 @@ namespace Rincon.Areas.Employee.Controllers
                 PaymentMethod = paymentMethod,
                 AmountReceived = amountReceived,
                 Change = change,
-                UserId = userId
+                UserId = userId,
+                CashRegisterSessionId = openCashRegister.Id
             };
 
             _workContainer.Sale.Add(sale);

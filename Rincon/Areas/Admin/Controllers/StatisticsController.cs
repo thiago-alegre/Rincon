@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Rincon.DataAccess.Data.Repository.IRepository;
+using Rincon.Models;
 using Rincon.Models.ViewModels;
 using Rincon.Utilities;
 using System.Globalization;
@@ -13,10 +15,12 @@ namespace Rincon.Areas.Admin.Controllers
     public class StatisticsController : Controller
     {
         private readonly IWorkContainer _workContainer;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public StatisticsController(IWorkContainer workContainer)
+        public StatisticsController(IWorkContainer workContainer, UserManager<ApplicationUser> userManager)
         {
             _workContainer = workContainer;
+            _userManager = userManager;
         }
 
         public IActionResult Index(DateTime? dateFrom, DateTime? dateTo, string? groupBy, string? metric)
@@ -100,7 +104,9 @@ namespace Rincon.Areas.Admin.Controllers
             var toExclusive = to.AddDays(1);
 
             var sales = _workContainer.Sale
-                .GetAll(s => s.Date >= from && s.Date < toExclusive)
+                .GetAll(
+                    s => s.Date >= from && s.Date < toExclusive,
+                    includeProperties: "User")
                 .ToList();
 
             var saleDetails = _workContainer.SaleDetail
@@ -156,6 +162,35 @@ namespace Rincon.Areas.Admin.Controllers
                 .OrderByDescending(c => selectedMetric == "amount" ? c.Amount : c.Quantity)
                 .ToList();
 
+            var users = _userManager.Users
+                .OrderBy(u => u.FullName)
+                .ToList();
+
+            var userSales = users
+                .GroupJoin(
+                    sales.Where(s => !string.IsNullOrWhiteSpace(s.UserId)),
+                    user => user.Id,
+                    sale => sale.UserId,
+                    (user, userSaleGroup) => new StatisticsUserPointVM
+                    {
+                        User = !string.IsNullOrWhiteSpace(user.FullName) ? user.FullName : user.Email ?? "Sin nombre",
+                        SalesCount = userSaleGroup.Count(),
+                        Amount = userSaleGroup.Sum(s => s.Total)
+                    })
+                .ToList();
+
+            var anonymousSales = sales.Where(s => string.IsNullOrWhiteSpace(s.UserId)).ToList();
+
+            if (anonymousSales.Any())
+            {
+                userSales.Add(new StatisticsUserPointVM
+                {
+                    User = "Sin usuario",
+                    SalesCount = anonymousSales.Count,
+                    Amount = anonymousSales.Sum(s => s.Total)
+                });
+            }
+
             var lowStockItems = _workContainer.Article
                 .GetAll(a => a.isActive)
                 .Where(a => a.Stock <= a.StockMin + 5)
@@ -194,6 +229,9 @@ namespace Rincon.Areas.Admin.Controllers
                 TopProducts = productStats
                     .OrderByDescending(p => selectedMetric == "amount" ? p.Amount : p.Quantity)
                     .Take(10)
+                    .ToList(),
+                UserSales = userSales
+                    .OrderByDescending(u => selectedMetric == "amount" ? u.Amount : u.SalesCount)
                     .ToList(),
                 LowStockItems = lowStockItems
             };

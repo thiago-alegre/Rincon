@@ -11,6 +11,7 @@ namespace Rincon.Models.ViewModels
         public List<StatisticsPeriodPointVM> PeriodSeries { get; set; } = new();
         public List<StatisticsCategoryPointVM> CategoryDistribution { get; set; } = new();
         public List<StatisticsProductPointVM> TopProducts { get; set; } = new();
+        public List<StatisticsUserPointVM> UserSales { get; set; } = new();
         public List<StatisticsLowStockItemVM> LowStockItems { get; set; } = new();
     }
 
@@ -46,6 +47,13 @@ namespace Rincon.Models.ViewModels
         public decimal Quantity { get; set; }
         public decimal Amount { get; set; }
         public decimal EstimatedProfit { get; set; }
+    }
+
+    public class StatisticsUserPointVM
+    {
+        public string User { get; set; } = string.Empty;
+        public int SalesCount { get; set; }
+        public decimal Amount { get; set; }
     }
 
     public class StatisticsLowStockItemVM

@@ -1,10 +1,14 @@
-﻿$(document).ready(function () {
-    $('#salesTable').DataTable({
+$(document).ready(function () {
+    const salesTable = $('#salesTable').DataTable({
         pageLength: 5,
         ajax: {
             url: '/Admin/Sales/GetAll',
             type: 'GET',
-            datatype: 'json'
+            datatype: 'json',
+            data: function (data) {
+                data.userId = $('#saleUserFilter').val();
+                data.saleDate = $('#saleDateFilter').val();
+            }
         },
         columns: [
             { data: 'date' },
@@ -34,5 +38,15 @@
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
         order: [[0, 'desc']]
+    });
+
+    $('#clearSalesFilters').on('click', function () {
+        $('#saleUserFilter').val('');
+        $('#saleDateFilter').val('');
+        salesTable.ajax.reload();
+    });
+
+    $('#saleUserFilter, #saleDateFilter').on('change', function () {
+        salesTable.ajax.reload();
     });
 });
