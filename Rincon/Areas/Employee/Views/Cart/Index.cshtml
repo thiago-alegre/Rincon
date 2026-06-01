@@ -480,11 +480,18 @@
                             <select id="paymentMethod" name="paymentMethod" class="form-select">
                                 <option value="Efectivo" selected>Efectivo</option>
                                 <option value="Transferencia">Transferencia</option>
-                                <option value="CuentaPersonal" disabled>Cuenta personal (próximamente)</option>
+                                <option value="CuentaPersonal">Cuenta personal</option>
                             </select>
 
-                            <div id="personalAccountNotice" class="mini-warning mt-3 d-none">
-                                Cuenta personal quedará pendiente para asociar la venta a una persona y acumular deuda.
+                            <div id="personalAccountPanel" class="mt-3 d-none">
+                                <label for="personalAccountId" class="form-label">Cuenta personal</label>
+                                <select id="personalAccountId" name="personalAccountId" class="form-select">
+                                    <option value="">Seleccione una cuenta</option>
+                                    @foreach (var account in Model.PersonalAccountList)
+                                    {
+                                        <option value="@account.Value">@account.Text</option>
+                                    }
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -572,7 +579,7 @@
             const paymentMethod = document.getElementById("paymentMethod");
             const cashPaymentPanel = document.getElementById("cashPaymentPanel");
             const nonCashNotice = document.getElementById("nonCashNotice");
-            const personalAccountNotice = document.getElementById("personalAccountNotice");
+            const personalAccountPanel = document.getElementById("personalAccountPanel");
             const cashInput = document.getElementById("cashReceived");
             const changeResult = document.getElementById("changeResult");
             const totalElement = document.getElementById("cartTotal");
@@ -583,7 +590,7 @@
             }
 
             function updatePaymentMethodView() {
-                if (!paymentMethod || !cashPaymentPanel || !nonCashNotice || !personalAccountNotice) {
+                if (!paymentMethod || !cashPaymentPanel || !nonCashNotice || !personalAccountPanel) {
                     return;
                 }
 
@@ -591,7 +598,7 @@
 
                 cashPaymentPanel.classList.toggle("d-none", selectedMethod !== "Efectivo");
                 nonCashNotice.classList.toggle("d-none", selectedMethod === "Efectivo");
-                personalAccountNotice.classList.toggle("d-none", selectedMethod !== "CuentaPersonal");
+                personalAccountPanel.classList.toggle("d-none", selectedMethod !== "CuentaPersonal");
             }
 
             if (paymentMethod) {

@@ -5,6 +5,7 @@ using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
 using Rincon.Utilities;
+using Rincon.Utilities.Enums;
 using System.Globalization;
 using System.Text;
 
@@ -46,13 +47,13 @@ namespace Rincon.Areas.Admin.Controllers
             var saleDetails = _workContainer.SaleDetail
                 .GetAll(
                     d => d.Sale.Date >= from && d.Sale.Date < toExclusive,
-                    includeProperties: "Sale,Sale.User,Article,Article.Category")
+                    includeProperties: "Sale,Sale.User,Sale.PersonalAccount,Article,Article.Category")
                 .OrderBy(d => d.Sale.Date)
                 .ThenBy(d => d.SaleId)
                 .ToList();
 
             var csv = new StringBuilder();
-            csv.AppendLine("Venta Id;Fecha;Usuario;Email usuario;Medio de pago;Total venta;Monto recibido;Vuelto;Articulo Id;Producto;Codigo;Categoria;Unidad;Cantidad;Precio unitario;Costo unitario;Subtotal;Ganancia estimada");
+            csv.AppendLine("Venta Id;Fecha;Usuario;Email usuario;Medio de pago;Cuenta personal;Estado cuenta personal;Total venta;Monto recibido;Vuelto;Articulo Id;Producto;Codigo;Categoria;Unidad;Cantidad;Precio unitario;Costo unitario;Subtotal;Ganancia estimada");
 
             foreach (var detail in saleDetails)
             {
@@ -66,6 +67,10 @@ namespace Rincon.Areas.Admin.Controllers
                     EscapeCsv(user?.FullName ?? "Sin usuario"),
                     EscapeCsv(user?.Email ?? string.Empty),
                     EscapeCsv(GetPaymentMethodDisplay(detail.Sale.PaymentMethod.ToString())),
+                    EscapeCsv(detail.Sale.PersonalAccount?.FullName),
+                    EscapeCsv(detail.Sale.PaymentMethod == PaymentMethod.CuentaPersonal
+                        ? detail.Sale.IsPersonalAccountSettled ? "Saldada" : "Pendiente"
+                        : string.Empty),
                     FormatDecimal(detail.Sale.Total),
                     FormatNullableDecimal(detail.Sale.AmountReceived),
                     FormatNullableDecimal(detail.Sale.Change),

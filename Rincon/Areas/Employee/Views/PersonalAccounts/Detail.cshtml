@@ -1,0 +1,111 @@
+@model Rincon.Models.ViewModels.PersonalAccountDetailVM
+
+@{
+    ViewData["Title"] = "Detalle de cuenta personal";
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="bi bi-person-lines-fill"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Cuenta personal</span>
+                <h1 class="admin-title h3 mb-1">@Model.Account.FullName</h1>
+                <p class="admin-subtitle mb-0">DNI @Model.Account.DNI · @(Model.Account.Phone ?? "Sin teléfono")</p>
+            </div>
+        </div>
+
+        <a asp-area="Employee" asp-controller="PersonalAccounts" asp-action="Index" class="btn btn-soft-secondary">
+            <i class="fa fa-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Deuda actual</div>
+                <div class="detail-metric-value text-danger">$ @Model.CurrentDebt.ToString("N2")</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Adeuda desde</div>
+                <div class="detail-metric-value">@(Model.DebtSince.HasValue ? Model.DebtSince.Value.ToString("dd/MM/yyyy") : "-")</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Dirección</div>
+                <div class="detail-metric-value">@(Model.Account.Address ?? "-")</div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CurrentDebt > 0)
+    {
+        <div class="content-card mb-4">
+            <form asp-area="Employee" asp-controller="PersonalAccounts" asp-action="Settle" method="post" class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Account.Id" />
+                <div>
+                    <span class="section-kicker">Saldar</span>
+                    <h2 class="section-title mb-0">Marcar deuda como saldada</h2>
+                </div>
+                <button type="submit" class="btn btn-success btn-modern">
+                    <i class="fa fa-check me-1"></i> Saldar cuenta
+                </button>
+            </form>
+        </div>
+    }
+
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Ventas</span>
+                <h2 class="section-title mb-0">Artículos vendidos a esta cuenta</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive custom-table-wrapper">
+            <table class="table custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sale in Model.Sales)
+                    {
+                        foreach (var item in sale.SaleDetails)
+                        {
+                            <tr>
+                                <td>@sale.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="fw-semibold">@item.ArticleName</td>
+                                <td>@item.Quantity.ToString("N2") @item.UnitOfMeasure</td>
+                                <td>$ @item.UnitPrice.ToString("N2")</td>
+                                <td class="fw-bold">$ @item.Subtotal.ToString("N2")</td>
+                                <td>
+                                    @if (sale.IsPersonalAccountSettled)
+                                    {
+                                        <span class="status-badge active">Saldada</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge inactive">Pendiente</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

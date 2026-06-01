@@ -66,51 +66,89 @@
 
                             @if (User.Identity != null && User.Identity.IsAuthenticated)
                             {
-                                @if (User.IsInRole(SD.Role_Admin))
-                                {
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Admin" asp-controller="Sales" asp-action="Index">
-                                            <i class="bi bi-receipt me-1"></i> Ventas
-                                        </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Admin" asp-controller="Statistics" asp-action="Index">
-                                            <i class="bi bi-bar-chart-line me-1"></i> Estadísticas
-                                        </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Index">
-                                            <i class="bi bi-tags me-1"></i> Categorías
-                                        </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Admin" asp-controller="Articles" asp-action="Index">
-                                            <i class="bi bi-box-seam me-1"></i> Artículos
-                                        </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Admin" asp-controller="Users" asp-action="Index">
-                                            <i class="bi bi-people me-1"></i> Usuarios
-                                        </a>
-                                    </li>
-                                }
-
                                 @if (User.IsInRole(SD.Role_Employee) || User.IsInRole(SD.Role_Admin))
                                 {
-                                    <li class="nav-item">
-                                        <a class="nav-link" asp-area="Employee" asp-controller="CashRegister" asp-action="Index">
-                                            <i class="bi bi-cash-stack me-1"></i> Caja
-                                        </a>
-                                    </li>
-
                                     <li class="nav-item">
                                         <a class="nav-link" asp-area="Employee" asp-controller="Cart" asp-action="Index">
                                             <i class="bi bi-cart me-1"></i> Carrito
                                         </a>
+                                    </li>
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle"
+                                           href="#"
+                                           id="operationDropdown"
+                                           role="button"
+                                           data-bs-toggle="dropdown"
+                                           aria-expanded="false">
+                                            <i class="bi bi-shop-window me-1"></i> Operación
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="operationDropdown">
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Employee" asp-controller="CashRegister" asp-action="Index">
+                                                    <i class="bi bi-cash-stack me-2"></i> Caja
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Employee" asp-controller="PersonalAccounts" asp-action="Index">
+                                                    <i class="bi bi-person-lines-fill me-2"></i> Cuentas personales
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                }
+
+                                @if (User.IsInRole(SD.Role_Admin))
+                                {
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle"
+                                           href="#"
+                                           id="adminDropdown"
+                                           role="button"
+                                           data-bs-toggle="dropdown"
+                                           aria-expanded="false">
+                                            <i class="bi bi-sliders me-1"></i> Administración
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Articles" asp-action="Index">
+                                                    <i class="bi bi-box-seam me-2"></i> Artículos
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Category" asp-action="Index">
+                                                    <i class="bi bi-tags me-2"></i> Categorías
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Index">
+                                                    <i class="bi bi-people me-2"></i> Usuarios
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle"
+                                           href="#"
+                                           id="reportsDropdown"
+                                           role="button"
+                                           data-bs-toggle="dropdown"
+                                           aria-expanded="false">
+                                            <i class="bi bi-graph-up-arrow me-1"></i> Reportes
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Sales" asp-action="Index">
+                                                    <i class="bi bi-receipt me-2"></i> Ventas
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Statistics" asp-action="Index">
+                                                    <i class="bi bi-bar-chart-line me-2"></i> Estadísticas
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </li>
                                 }
                             }

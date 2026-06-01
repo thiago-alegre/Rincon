@@ -16,5 +16,6 @@ namespace Rincon.DataAccess.Data
         public DbSet<Sale> Sales { get; set; }
         public DbSet<SaleDetail> SaleDetails { get; set; }
         public DbSet<CashRegisterSession> CashRegisterSessions { get; set; }
+        public DbSet<PersonalAccount> PersonalAccounts { get; set; }
     }
 }

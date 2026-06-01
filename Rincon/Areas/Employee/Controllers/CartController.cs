@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Extensions;
 using Rincon.Models;
@@ -217,19 +218,13 @@ namespace Rincon.Areas.Employee.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ConfirmSale(PaymentMethod paymentMethod, string? amountReceivedText)
+        public IActionResult ConfirmSale(PaymentMethod paymentMethod, string? amountReceivedText, int? personalAccountId)
         {
             var cart = GetCart();
 
             if (!cart.Any())
             {
                 TempData["error"] = "El carrito está vacío";
-                return RedirectToAction(nameof(Index));
-            }
-
-            if (paymentMethod == PaymentMethod.CuentaPersonal)
-            {
-                TempData["error"] = "Cuenta personal todavía no está implementada";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -269,6 +264,23 @@ namespace Rincon.Areas.Employee.Controllers
             decimal? amountReceived = null;
             decimal? change = null;
 
+            if (paymentMethod == PaymentMethod.CuentaPersonal)
+            {
+                if (!personalAccountId.HasValue || personalAccountId.Value <= 0)
+                {
+                    TempData["error"] = "Seleccione una cuenta personal";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var personalAccount = _workContainer.PersonalAccount.GetFirstOrDefault(a => a.Id == personalAccountId.Value && a.isActive);
+
+                if (personalAccount == null)
+                {
+                    TempData["error"] = "La cuenta personal seleccionada no está disponible";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(amountReceivedText))
             {
                 if (TryParseDecimal(amountReceivedText, out decimal parsedAmountReceived))
@@ -298,7 +310,9 @@ namespace Rincon.Areas.Employee.Controllers
                 AmountReceived = amountReceived,
                 Change = change,
                 UserId = userId,
-                CashRegisterSessionId = openCashRegister.Id
+                CashRegisterSessionId = openCashRegister.Id,
+                PersonalAccountId = paymentMethod == PaymentMethod.CuentaPersonal ? personalAccountId : null,
+                IsPersonalAccountSettled = paymentMethod != PaymentMethod.CuentaPersonal
             };
 
             _workContainer.Sale.Add(sale);
@@ -403,7 +417,16 @@ namespace Rincon.Areas.Employee.Controllers
             {
                 Items = items,
                 SearchString = searchString,
-                SearchResults = GetSearchResults(searchString)
+                SearchResults = GetSearchResults(searchString),
+                PersonalAccountList = _workContainer.PersonalAccount
+                    .GetAll(a => a.isActive)
+                    .OrderBy(a => a.FullName)
+                    .Select(a => new SelectListItem
+                    {
+                        Text = $"{a.FullName} - DNI {a.DNI}",
+                        Value = a.Id.ToString()
+                    })
+                    .ToList()
             };
         }
 

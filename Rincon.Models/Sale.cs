@@ -35,6 +35,15 @@ namespace Rincon.Models
         [ForeignKey("CashRegisterSessionId")]
         public CashRegisterSession? CashRegisterSession { get; set; }
 
+        public int? PersonalAccountId { get; set; }
+
+        [ForeignKey("PersonalAccountId")]
+        public PersonalAccount? PersonalAccount { get; set; }
+
+        public bool IsPersonalAccountSettled { get; set; } = false;
+
+        public DateTime? PersonalAccountSettledAt { get; set; }
+
         public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }

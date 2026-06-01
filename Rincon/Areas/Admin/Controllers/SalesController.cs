@@ -45,7 +45,7 @@ namespace Rincon.Areas.Admin.Controllers
         {
             var sale = _workContainer.Sale.GetFirstOrDefault(
                 s => s.Id == id,
-                includeProperties: "SaleDetails,User,CashRegisterSession,CashRegisterSession.User"
+                includeProperties: "SaleDetails,User,CashRegisterSession,CashRegisterSession.User,PersonalAccount"
             );
 
             if (sale == null)
