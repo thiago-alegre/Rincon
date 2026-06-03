@@ -36,6 +36,7 @@ namespace Rincon.Models
         public ApplicationUser? User { get; set; }
 
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
+        public ICollection<PersonalAccountPayment> PersonalAccountPayments { get; set; } = new List<PersonalAccountPayment>();
 
         [NotMapped]
         public bool IsOpen => ClosedAt == null;

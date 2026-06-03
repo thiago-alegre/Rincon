@@ -1,6 +1,8 @@
 $(document).ready(function () {
     $('#personalAccountsTable').DataTable({
-        pageLength: 10,
+        processing: true,
+        serverSide: true,
+        pageLength: 5,
         ajax: {
             url: '/Employee/PersonalAccounts/GetAll',
             type: 'GET',

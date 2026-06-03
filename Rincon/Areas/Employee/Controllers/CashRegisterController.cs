@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Rincon.DataAccess.Data;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
@@ -15,10 +17,12 @@ namespace Rincon.Areas.Employee.Controllers
     public class CashRegisterController : Controller
     {
         private readonly IWorkContainer _workContainer;
+        private readonly ApplicationDbContext _db;
 
-        public CashRegisterController(IWorkContainer workContainer)
+        public CashRegisterController(IWorkContainer workContainer, ApplicationDbContext db)
         {
             _workContainer = workContainer;
+            _db = db;
         }
 
         public IActionResult Index()
@@ -125,6 +129,86 @@ namespace Rincon.Areas.Employee.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 5);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
+            var userId = GetCurrentUserId();
+            var canViewAllSessions = User.IsInRole(SD.Role_Admin);
+
+            var query = _db.CashRegisterSessions
+                .AsNoTracking()
+                .Include(s => s.User)
+                .Where(s => canViewAllSessions || s.UserId == userId)
+                .AsQueryable();
+
+            var recordsTotal = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                var isOpenSearch = "abierta".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+                var isClosedSearch = "cerrada".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+
+                query = query.Where(s =>
+                    (s.User != null &&
+                        ((s.User.FullName != null && s.User.FullName.Contains(searchValue)) ||
+                         (s.User.Email != null && s.User.Email.Contains(searchValue)))) ||
+                    (s.Notes != null && s.Notes.Contains(searchValue)) ||
+                    (isOpenSearch && s.ClosedAt == null) ||
+                    (isClosedSearch && s.ClosedAt != null));
+            }
+
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                0 => orderDirection == "asc"
+                    ? query.OrderBy(s => s.User != null ? s.User.FullName : string.Empty)
+                    : query.OrderByDescending(s => s.User != null ? s.User.FullName : string.Empty),
+                1 => orderDirection == "asc" ? query.OrderBy(s => s.OpenedAt) : query.OrderByDescending(s => s.OpenedAt),
+                2 => orderDirection == "asc" ? query.OrderBy(s => s.ClosedAt) : query.OrderByDescending(s => s.ClosedAt),
+                3 => orderDirection == "asc" ? query.OrderBy(s => s.OpeningAmount) : query.OrderByDescending(s => s.OpeningAmount),
+                4 => orderDirection == "asc" ? query.OrderBy(s => s.ExpectedCashAmount) : query.OrderByDescending(s => s.ExpectedCashAmount),
+                5 => orderDirection == "asc" ? query.OrderBy(s => s.CountedCashAmount) : query.OrderByDescending(s => s.CountedCashAmount),
+                6 => orderDirection == "asc" ? query.OrderBy(s => s.Difference) : query.OrderByDescending(s => s.Difference),
+                7 => orderDirection == "asc" ? query.OrderBy(s => s.ClosedAt == null) : query.OrderByDescending(s => s.ClosedAt == null),
+                _ => query.OrderByDescending(s => s.OpenedAt)
+            };
+
+            var data = query
+                .Skip(start)
+                .Take(length)
+                .ToList()
+                .Select(session => new
+            {
+                user = GetUserName(session),
+                openedAt = session.OpenedAt.ToString("dd/MM/yyyy HH:mm"),
+                openedAtSort = session.OpenedAt.ToString("yyyyMMddHHmmss"),
+                closedAt = session.ClosedAt.HasValue ? session.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-",
+                closedAtSort = session.ClosedAt.HasValue ? session.ClosedAt.Value.ToString("yyyyMMddHHmmss") : string.Empty,
+                openingAmount = session.OpeningAmount.ToString("N2"),
+                expectedCashAmount = session.ExpectedCashAmount.HasValue ? session.ExpectedCashAmount.Value.ToString("N2") : "-",
+                countedCashAmount = session.CountedCashAmount.HasValue ? session.CountedCashAmount.Value.ToString("N2") : "-",
+                difference = session.Difference.HasValue ? session.Difference.Value.ToString("N2") : "-",
+                differenceValue = session.Difference ?? 0,
+                status = session.IsOpen ? "Abierta" : "Cerrada",
+                isOpen = session.IsOpen
+            });
+
+            return Json(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data
+            });
+        }
+
         private CashRegisterSession? GetOpenSession(string? userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
@@ -143,6 +227,10 @@ namespace Rincon.Areas.Employee.Controllers
                 .GetAll(s => s.CashRegisterSessionId == session.Id)
                 .ToList();
 
+            var accountPayments = _workContainer.PersonalAccountPayment
+                .GetAll(p => p.CashRegisterSessionId == session.Id)
+                .ToList();
+
             var cashSales = sales
                 .Where(s => s.PaymentMethod == PaymentMethod.Efectivo)
                 .Sum(s => s.Total);
@@ -155,13 +243,23 @@ namespace Rincon.Areas.Employee.Controllers
                 .Where(s => s.PaymentMethod == PaymentMethod.CuentaPersonal)
                 .Sum(s => s.Total);
 
+            var personalAccountCashPayments = accountPayments
+                .Where(p => p.PaymentMethod == PaymentMethod.Efectivo)
+                .Sum(p => p.Amount);
+
+            var personalAccountTransferPayments = accountPayments
+                .Where(p => p.PaymentMethod == PaymentMethod.Transferencia)
+                .Sum(p => p.Amount);
+
             return new CashRegisterSummaryVM
             {
                 CashSales = cashSales,
                 TransferSales = transferSales,
                 PersonalAccountSales = personalAccountSales,
+                PersonalAccountCashPayments = personalAccountCashPayments,
+                PersonalAccountTransferPayments = personalAccountTransferPayments,
                 TotalSales = sales.Sum(s => s.Total),
-                ExpectedCash = session.OpeningAmount + cashSales,
+                ExpectedCash = session.OpeningAmount + cashSales + personalAccountCashPayments,
                 SalesCount = sales.Count
             };
         }
@@ -170,6 +268,18 @@ namespace Rincon.Areas.Employee.Controllers
         {
             var claimsIdentity = User.Identity as ClaimsIdentity;
             return claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private string GetUserName(CashRegisterSession session)
+        {
+            return session.User != null
+                ? (!string.IsNullOrWhiteSpace(session.User.FullName) ? session.User.FullName : session.User.Email ?? "Sin usuario")
+                : "Sin usuario";
+        }
+
+        private int GetDataTablesInt(string key, int defaultValue = 0)
+        {
+            return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
         }
 
         private bool TryParseDecimal(string? value, out decimal result)

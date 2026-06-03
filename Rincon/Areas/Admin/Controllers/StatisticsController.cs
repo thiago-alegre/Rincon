@@ -74,7 +74,7 @@ namespace Rincon.Areas.Admin.Controllers
                     FormatDecimal(detail.Sale.Total),
                     FormatNullableDecimal(detail.Sale.AmountReceived),
                     FormatNullableDecimal(detail.Sale.Change),
-                    detail.ArticleId.ToString(),
+                    detail.ArticleId.HasValue ? detail.ArticleId.Value.ToString() : string.Empty,
                     EscapeCsv(detail.ArticleName),
                     EscapeCsv(detail.ArticleCode),
                     EscapeCsv(detail.Article?.Category?.Name ?? "Sin categoria"),

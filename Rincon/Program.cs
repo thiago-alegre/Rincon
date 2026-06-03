@@ -67,7 +67,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Employee/Home/Error");
+    app.UseExceptionHandler("/Employee/Cart/Index");
     app.UseHsts();
 }
 

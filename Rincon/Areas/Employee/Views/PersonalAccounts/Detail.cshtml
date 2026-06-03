@@ -46,15 +46,29 @@
     @if (Model.CurrentDebt > 0)
     {
         <div class="content-card mb-4">
-            <form asp-area="Employee" asp-controller="PersonalAccounts" asp-action="Settle" method="post" class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <form asp-area="Employee" asp-controller="PersonalAccounts" asp-action="Settle" method="post" class="personal-account-settle-form">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Account.Id" />
+                <input type="hidden" name="Id" value="@Model.Account.Id" />
                 <div>
-                    <span class="section-kicker">Saldar</span>
-                    <h2 class="section-title mb-0">Marcar deuda como saldada</h2>
+                    <span class="section-kicker">Cobro</span>
+                    <h2 class="section-title mb-0">Registrar pago de cuenta</h2>
+                    <p class="text-muted mb-0">Si el monto queda vacío, se registra el total pendiente.</p>
                 </div>
+                <select name="PaymentMethod" class="form-select">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                </select>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input name="AmountText"
+                           class="form-control"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           placeholder="Monto abonado" />
+                </div>
+                <input name="Notes" class="form-control" placeholder="Observación opcional" maxlength="500" />
                 <button type="submit" class="btn btn-success btn-modern">
-                    <i class="fa fa-check me-1"></i> Saldar cuenta
+                    <i class="fa fa-check me-1"></i> Registrar pago
                 </button>
             </form>
         </div>
@@ -69,7 +83,9 @@
         </div>
 
         <div class="table-responsive custom-table-wrapper">
-            <table class="table custom-table mb-0">
+            <table id="personalAccountSaleDetailsTable"
+                   class="table custom-table mb-0 w-100"
+                   data-account-id="@Model.Account.Id">
                 <thead>
                     <tr>
                         <th>Fecha</th>
@@ -80,32 +96,37 @@
                         <th>Estado</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var sale in Model.Sales)
-                    {
-                        foreach (var item in sale.SaleDetails)
-                        {
-                            <tr>
-                                <td>@sale.Date.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="fw-semibold">@item.ArticleName</td>
-                                <td>@item.Quantity.ToString("N2") @item.UnitOfMeasure</td>
-                                <td>$ @item.UnitPrice.ToString("N2")</td>
-                                <td class="fw-bold">$ @item.Subtotal.ToString("N2")</td>
-                                <td>
-                                    @if (sale.IsPersonalAccountSettled)
-                                    {
-                                        <span class="status-badge active">Saldada</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge inactive">Pendiente</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="content-card mt-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Cobros</span>
+                <h2 class="section-title mb-0">Pagos registrados</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive custom-table-wrapper">
+            <table id="personalAccountPaymentsTable"
+                   class="table custom-table mb-0 w-100"
+                   data-account-id="@Model.Account.Id">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Medio</th>
+                        <th>Monto</th>
+                        <th>Caja</th>
+                        <th>Usuario</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/personalAccountDetail.js" asp-append-version="true"></script>
+}

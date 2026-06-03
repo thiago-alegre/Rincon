@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Rincon.DataAccess.Data;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
 using Rincon.Utilities;
 using Rincon.Utilities.Enums;
+using System.Globalization;
+using System.Security.Claims;
 
 namespace Rincon.Areas.Employee.Controllers
 {
@@ -13,10 +17,12 @@ namespace Rincon.Areas.Employee.Controllers
     public class PersonalAccountsController : Controller
     {
         private readonly IWorkContainer _workContainer;
+        private readonly ApplicationDbContext _db;
 
-        public PersonalAccountsController(IWorkContainer workContainer)
+        public PersonalAccountsController(IWorkContainer workContainer, ApplicationDbContext db)
         {
             _workContainer = workContainer;
+            _db = db;
         }
 
         public IActionResult Index()
@@ -34,22 +40,16 @@ namespace Rincon.Areas.Employee.Controllers
                 return NotFound();
             }
 
-            var sales = _workContainer.Sale
-                .GetAll(
-                    s => s.PersonalAccountId == id,
-                    orderBy: q => q.OrderByDescending(s => s.Date),
-                    includeProperties: "SaleDetails,User")
-                .ToList();
-
-            var pendingSales = sales
-                .Where(s => s.PaymentMethod == PaymentMethod.CuentaPersonal && !s.IsPersonalAccountSettled)
+            var pendingSales = _db.Sales
+                .AsNoTracking()
+                .Where(s => s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                .Where(s => s.PersonalAccountId == id)
                 .ToList();
 
             var vm = new PersonalAccountDetailVM
             {
                 Account = account,
-                Sales = sales,
-                CurrentDebt = pendingSales.Sum(s => s.Total),
+                CurrentDebt = pendingSales.Sum(s => s.Total - s.PersonalAccountPaidAmount),
                 DebtSince = pendingSales.OrderBy(s => s.Date).FirstOrDefault()?.Date
             };
 
@@ -101,63 +101,343 @@ namespace Rincon.Areas.Employee.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Settle(int id)
+        public IActionResult Settle(PersonalAccountSettleVM vm)
         {
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                TempData["error"] = "No se pudo identificar el usuario actual";
+                return RedirectToAction(nameof(Detail), new { id = vm.Id });
+            }
+
+            var openCashRegister = _workContainer.CashRegisterSession.GetFirstOrDefault(
+                s => s.UserId == userId && s.ClosedAt == null);
+
+            if (openCashRegister == null)
+            {
+                TempData["error"] = "Debe abrir una caja antes de saldar cuentas personales";
+                return RedirectToAction(nameof(Detail), new { id = vm.Id });
+            }
+
+            if (vm.PaymentMethod != PaymentMethod.Efectivo && vm.PaymentMethod != PaymentMethod.Transferencia)
+            {
+                TempData["error"] = "Seleccione un medio de pago válido";
+                return RedirectToAction(nameof(Detail), new { id = vm.Id });
+            }
+
             var sales = _workContainer.Sale
-                .GetAll(s => s.PersonalAccountId == id && s.PaymentMethod == PaymentMethod.CuentaPersonal && !s.IsPersonalAccountSettled)
+                .GetAll(s => s.PersonalAccountId == vm.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                .OrderBy(s => s.Date)
                 .ToList();
+
+            var amount = sales.Sum(s => s.Total);
+            var pendingAmount = sales.Sum(s => s.Total - s.PersonalAccountPaidAmount);
+
+            if (pendingAmount <= 0)
+            {
+                TempData["error"] = "La cuenta no tiene deuda pendiente";
+                return RedirectToAction(nameof(Detail), new { id = vm.Id });
+            }
+
+            decimal paymentAmount = pendingAmount;
+
+            if (!string.IsNullOrWhiteSpace(vm.AmountText))
+            {
+                if (!TryParseDecimal(vm.AmountText, out paymentAmount) || paymentAmount <= 0)
+                {
+                    TempData["error"] = "Ingrese un monto abonado válido";
+                    return RedirectToAction(nameof(Detail), new { id = vm.Id });
+                }
+
+                if (paymentAmount > pendingAmount)
+                {
+                    TempData["error"] = $"El monto abonado no puede superar la deuda pendiente de $ {pendingAmount:N2}";
+                    return RedirectToAction(nameof(Detail), new { id = vm.Id });
+                }
+            }
+
+            _workContainer.PersonalAccountPayment.Add(new PersonalAccountPayment
+            {
+                Date = DateTime.Now,
+                Amount = paymentAmount,
+                PaymentMethod = vm.PaymentMethod,
+                Notes = vm.Notes,
+                PersonalAccountId = vm.Id,
+                CashRegisterSessionId = openCashRegister.Id,
+                UserId = userId
+            });
+
+            var remainingPayment = paymentAmount;
 
             foreach (var sale in sales)
             {
-                sale.IsPersonalAccountSettled = true;
-                sale.PersonalAccountSettledAt = DateTime.Now;
+                if (remainingPayment <= 0)
+                {
+                    break;
+                }
+
+                var salePendingAmount = sale.Total - sale.PersonalAccountPaidAmount;
+                var amountApplied = Math.Min(salePendingAmount, remainingPayment);
+
+                sale.PersonalAccountPaidAmount += amountApplied;
+                remainingPayment -= amountApplied;
+
+                if (sale.PersonalAccountPaidAmount >= sale.Total)
+                {
+                    sale.IsPersonalAccountSettled = true;
+                    sale.PersonalAccountSettledAt = DateTime.Now;
+                }
+                else
+                {
+                    sale.IsPersonalAccountSettled = false;
+                    sale.PersonalAccountSettledAt = null;
+                }
+
                 _workContainer.Sale.Update(sale);
             }
 
             _workContainer.Save();
 
-            TempData["success"] = "Cuenta personal saldada correctamente";
-            return RedirectToAction(nameof(Detail), new { id });
+            TempData["success"] = paymentAmount == pendingAmount
+                ? "Cuenta personal saldada correctamente"
+                : "Pago parcial registrado correctamente";
+            return RedirectToAction(nameof(Detail), new { id = vm.Id });
         }
 
         [HttpGet]
         public IActionResult GetAll()
         {
-            var accounts = _workContainer.PersonalAccount
-                .GetAll(a => a.isActive)
-                .OrderBy(a => a.FullName)
-                .ToList();
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 10);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
 
-            var pendingSales = _workContainer.Sale
-                .GetAll(s => s.PaymentMethod == PaymentMethod.CuentaPersonal && !s.IsPersonalAccountSettled)
-                .ToList();
+            var query = _db.PersonalAccounts
+                .AsNoTracking()
+                .Where(a => a.isActive)
+                .Select(a => new
+                {
+                    id = a.Id,
+                    fullName = a.FullName,
+                    dni = a.DNI,
+                    address = a.Address,
+                    phone = a.Phone,
+                    debtValue = _db.Sales
+                        .Where(s => s.PersonalAccountId == a.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Sum(s => (decimal?)(s.Total - s.PersonalAccountPaidAmount)) ?? 0m,
+                    debtSinceValue = _db.Sales
+                        .Where(s => s.PersonalAccountId == a.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Min(s => (DateTime?)s.Date)
+                });
 
-            var data = accounts.Select(account =>
+            var recordsTotal = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
             {
-                var accountSales = pendingSales
-                    .Where(s => s.PersonalAccountId == account.Id)
+                query = query.Where(a =>
+                    a.fullName.Contains(searchValue) ||
+                    a.dni.Contains(searchValue) ||
+                    (a.phone != null && a.phone.Contains(searchValue)) ||
+                    (a.address != null && a.address.Contains(searchValue)));
+            }
+
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                0 => orderDirection == "asc" ? query.OrderBy(a => a.fullName) : query.OrderByDescending(a => a.fullName),
+                1 => orderDirection == "asc" ? query.OrderBy(a => a.dni) : query.OrderByDescending(a => a.dni),
+                2 => orderDirection == "asc" ? query.OrderBy(a => a.phone) : query.OrderByDescending(a => a.phone),
+                3 => orderDirection == "asc" ? query.OrderBy(a => a.address) : query.OrderByDescending(a => a.address),
+                4 => orderDirection == "asc" ? query.OrderBy(a => a.debtValue) : query.OrderByDescending(a => a.debtValue),
+                5 => orderDirection == "asc" ? query.OrderBy(a => a.debtSinceValue) : query.OrderByDescending(a => a.debtSinceValue),
+                _ => query.OrderBy(a => a.fullName)
+            };
+
+            var canManage = User.IsInRole(SD.Role_Admin);
+            var data = query
+                .Skip(start)
+                .Take(length)
+                .ToList()
+                .Select(account => new
+                {
+                    account.id,
+                    account.fullName,
+                    account.dni,
+                    account.address,
+                    account.phone,
+                    debt = account.debtValue.ToString("N2"),
+                    account.debtValue,
+                    debtSince = account.debtSinceValue.HasValue ? account.debtSinceValue.Value.ToString("dd/MM/yyyy") : "-",
+                    detailUrl = Url.Action("Detail", "PersonalAccounts", new { area = "Employee", id = account.id }),
+                    editUrl = Url.Action("Upsert", "PersonalAccounts", new { area = "Employee", id = account.id }),
+                    canManage
+                });
+
+            return Json(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data
+            });
+        }
+
+        [HttpGet]
+        public IActionResult GetSaleDetails(int id)
+        {
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 5);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
+
+            var query = _db.SaleDetails
+                .AsNoTracking()
+                .Include(d => d.Sale)
+                .Where(d => d.Sale.PersonalAccountId == id)
+                .Select(d => new
+                {
+                    saleDate = d.Sale.Date,
+                    d.ArticleName,
+                    d.Quantity,
+                    d.UnitOfMeasure,
+                    d.UnitPrice,
+                    d.Subtotal,
+                    d.Sale.PersonalAccountPaidAmount,
+                    d.Sale.IsPersonalAccountSettled
+                });
+
+            var recordsTotal = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                var settledSearch = "saldada".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+                var pendingSearch = "pendiente".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+
+                query = query.Where(d =>
+                    d.ArticleName.Contains(searchValue) ||
+                    d.UnitOfMeasure.Contains(searchValue) ||
+                    (settledSearch && d.IsPersonalAccountSettled) ||
+                    (pendingSearch && !d.IsPersonalAccountSettled));
+            }
+
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                0 => orderDirection == "asc" ? query.OrderBy(d => d.saleDate) : query.OrderByDescending(d => d.saleDate),
+                1 => orderDirection == "asc" ? query.OrderBy(d => d.ArticleName) : query.OrderByDescending(d => d.ArticleName),
+                2 => orderDirection == "asc" ? query.OrderBy(d => d.Quantity) : query.OrderByDescending(d => d.Quantity),
+                3 => orderDirection == "asc" ? query.OrderBy(d => d.UnitPrice) : query.OrderByDescending(d => d.UnitPrice),
+                4 => orderDirection == "asc" ? query.OrderBy(d => d.Subtotal) : query.OrderByDescending(d => d.Subtotal),
+                5 => orderDirection == "asc" ? query.OrderBy(d => d.IsPersonalAccountSettled) : query.OrderByDescending(d => d.IsPersonalAccountSettled),
+                _ => query.OrderByDescending(d => d.saleDate)
+            };
+
+            var data = query
+                .Skip(start)
+                .Take(length)
+                .ToList()
+                .Select(d => new
+                {
+                    date = d.saleDate.ToString("dd/MM/yyyy HH:mm"),
+                    product = d.ArticleName,
+                    quantity = $"{d.Quantity:N2} {d.UnitOfMeasure}",
+                    unitPrice = d.UnitPrice.ToString("N2"),
+                    subtotal = d.Subtotal.ToString("N2"),
+                    status = d.IsPersonalAccountSettled ? "Saldada" : "Pendiente",
+                    settled = d.IsPersonalAccountSettled,
+                    paidAmount = d.PersonalAccountPaidAmount.ToString("N2")
+                });
+
+            return Json(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data
+            });
+        }
+
+        [HttpGet]
+        public IActionResult GetPayments(int id)
+        {
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 5);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
+
+            var query = _db.PersonalAccountPayments
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Where(p => p.PersonalAccountId == id)
+                .Select(p => new
+                {
+                    p.Date,
+                    p.PaymentMethod,
+                    p.Amount,
+                    p.CashRegisterSessionId,
+                    userName = p.User != null
+                        ? (p.User.FullName != null && p.User.FullName != string.Empty ? p.User.FullName : p.User.Email)
+                        : "Sin usuario",
+                    p.Notes
+                });
+
+            var recordsTotal = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                var matchingPaymentMethods = Enum.GetValues<PaymentMethod>()
+                    .Where(p => p.ToString().Contains(searchValue, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
-                var debt = accountSales.Sum(s => s.Total);
-                var debtSince = accountSales.OrderBy(s => s.Date).FirstOrDefault()?.Date;
+                query = query.Where(p =>
+                    matchingPaymentMethods.Contains(p.PaymentMethod) ||
+                    (p.userName != null && p.userName.Contains(searchValue)) ||
+                    (p.Notes != null && p.Notes.Contains(searchValue)));
+            }
 
-                return new
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                0 => orderDirection == "asc" ? query.OrderBy(p => p.Date) : query.OrderByDescending(p => p.Date),
+                1 => orderDirection == "asc" ? query.OrderBy(p => p.PaymentMethod) : query.OrderByDescending(p => p.PaymentMethod),
+                2 => orderDirection == "asc" ? query.OrderBy(p => p.Amount) : query.OrderByDescending(p => p.Amount),
+                3 => orderDirection == "asc" ? query.OrderBy(p => p.CashRegisterSessionId) : query.OrderByDescending(p => p.CashRegisterSessionId),
+                4 => orderDirection == "asc" ? query.OrderBy(p => p.userName) : query.OrderByDescending(p => p.userName),
+                5 => orderDirection == "asc" ? query.OrderBy(p => p.Notes) : query.OrderByDescending(p => p.Notes),
+                _ => query.OrderByDescending(p => p.Date)
+            };
+
+            var data = query
+                .Skip(start)
+                .Take(length)
+                .ToList()
+                .Select(p => new
                 {
-                    id = account.Id,
-                    fullName = account.FullName,
-                    dni = account.DNI,
-                    address = account.Address,
-                    phone = account.Phone,
-                    debt = debt.ToString("N2"),
-                    debtValue = debt,
-                    debtSince = debtSince.HasValue ? debtSince.Value.ToString("dd/MM/yyyy") : "-",
-                    detailUrl = Url.Action("Detail", "PersonalAccounts", new { area = "Employee", id = account.Id }),
-                    editUrl = Url.Action("Upsert", "PersonalAccounts", new { area = "Employee", id = account.Id }),
-                    canManage = User.IsInRole(SD.Role_Admin)
-                };
-            });
+                    date = p.Date.ToString("dd/MM/yyyy HH:mm"),
+                    paymentMethod = p.PaymentMethod.ToString(),
+                    amount = p.Amount.ToString("N2"),
+                    cashRegister = $"Caja #{p.CashRegisterSessionId}",
+                    user = p.userName,
+                    notes = string.IsNullOrWhiteSpace(p.Notes) ? "-" : p.Notes
+                });
 
-            return Json(new { data });
+            return Json(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data
+            });
         }
 
         [HttpDelete]
@@ -185,6 +465,47 @@ namespace Rincon.Areas.Employee.Controllers
             _workContainer.Save();
 
             return Json(new { success = true, message = "Cuenta personal eliminada correctamente" });
+        }
+
+        private string? GetCurrentUserId()
+        {
+            var claimsIdentity = User.Identity as ClaimsIdentity;
+            return claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private int GetDataTablesInt(string key, int defaultValue = 0)
+        {
+            return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private bool TryParseDecimal(string? value, out decimal result)
+        {
+            result = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            value = value.Trim().Replace(" ", "");
+            bool hasComma = value.Contains(",");
+            bool hasDot = value.Contains(".");
+
+            if (hasComma && hasDot)
+            {
+                int lastComma = value.LastIndexOf(",");
+                int lastDot = value.LastIndexOf(".");
+
+                value = lastComma > lastDot
+                    ? value.Replace(".", "").Replace(",", ".")
+                    : value.Replace(",", "");
+            }
+            else if (hasComma)
+            {
+                value = value.Replace(",", ".");
+            }
+
+            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
         }
     }
 }

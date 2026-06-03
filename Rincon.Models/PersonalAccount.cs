@@ -28,5 +28,6 @@ namespace Rincon.Models
         public bool isActive { get; set; } = true;
 
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
+        public ICollection<PersonalAccountPayment> Payments { get; set; } = new List<PersonalAccountPayment>();
     }
 }

@@ -44,6 +44,9 @@ namespace Rincon.Models
 
         public DateTime? PersonalAccountSettledAt { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PersonalAccountPaidAmount { get; set; } = 0;
+
         public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }

@@ -13,6 +13,8 @@ namespace Rincon.Models.ViewModels
         public decimal CashSales { get; set; }
         public decimal TransferSales { get; set; }
         public decimal PersonalAccountSales { get; set; }
+        public decimal PersonalAccountCashPayments { get; set; }
+        public decimal PersonalAccountTransferPayments { get; set; }
         public decimal TotalSales { get; set; }
         public decimal ExpectedCash { get; set; }
         public int SalesCount { get; set; }

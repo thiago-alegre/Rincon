@@ -50,25 +50,50 @@
     else
     {
         <div class="row g-3 mb-4">
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
                 <div class="detail-metric-card">
                     <div class="detail-metric-label">Monto inicial</div>
                     <div class="detail-metric-value">$ @Model.OpenSession.OpeningAmount.ToString("N2")</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
                 <div class="detail-metric-card">
                     <div class="detail-metric-label">Efectivo vendido</div>
                     <div class="detail-metric-value">$ @Model.CurrentSummary.CashSales.ToString("N2")</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Transferencia vendida</div>
+                    <div class="detail-metric-value">$ @Model.CurrentSummary.TransferSales.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Cuenta personal</div>
+                    <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountSales.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Cobros cuenta personal</div>
+                    <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountCashPayments.ToString("N2")</div>
+                    <div class="small text-muted">Transferencia: $ @Model.CurrentSummary.PersonalAccountTransferPayments.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="detail-metric-card">
+                    <div class="detail-metric-label">Total vendido</div>
+                    <div class="detail-metric-value success">$ @Model.CurrentSummary.TotalSales.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
                 <div class="detail-metric-card">
                     <div class="detail-metric-label">Efectivo esperado</div>
                     <div class="detail-metric-value success">$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
                 <div class="detail-metric-card">
                     <div class="detail-metric-label">Ventas del turno</div>
                     <div class="detail-metric-value">@Model.CurrentSummary.SalesCount</div>
@@ -108,7 +133,7 @@
         </div>
 
         <div class="table-responsive custom-table-wrapper">
-            <table class="table custom-table mb-0">
+            <table id="cashRegisterTable" class="table custom-table mb-0 w-100">
                 <thead>
                     <tr>
                         <th>Usuario</th>
@@ -121,33 +146,11 @@
                         <th>Estado</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var session in Model.Sessions)
-                    {
-                        <tr>
-                            <td class="fw-semibold">@GetUserName(session)</td>
-                            <td>@session.OpenedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td>@(session.ClosedAt.HasValue ? session.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")</td>
-                            <td>$ @session.OpeningAmount.ToString("N2")</td>
-                            <td>@(session.ExpectedCashAmount.HasValue ? $"$ {session.ExpectedCashAmount.Value:N2}" : "-")</td>
-                            <td>@(session.CountedCashAmount.HasValue ? $"$ {session.CountedCashAmount.Value:N2}" : "-")</td>
-                            <td class="fw-bold @(session.Difference < 0 ? "text-danger" : session.Difference > 0 ? "text-success" : "")">
-                                @(session.Difference.HasValue ? $"$ {session.Difference.Value:N2}" : "-")
-                            </td>
-                            <td>
-                                @if (session.IsOpen)
-                                {
-                                    <span class="status-badge active">Abierta</span>
-                                }
-                                else
-                                {
-                                    <span class="status-badge inactive">Cerrada</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/cashRegister.js" asp-append-version="true"></script>
+}

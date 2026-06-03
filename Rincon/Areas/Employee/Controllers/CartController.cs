@@ -99,6 +99,33 @@ namespace Rincon.Areas.Employee.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public IActionResult AddManual(string? manualName, string? manualAmountText)
+        {
+            if (!TryParseDecimal(manualAmountText, out decimal amount) || amount <= 0)
+            {
+                TempData["error"] = "Ingrese un importe valido para la venta manual";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var cart = GetCart();
+            cart.Add(new ShoppingCartItemVM
+            {
+                LineId = Guid.NewGuid().ToString("N"),
+                IsManual = true,
+                ManualName = string.IsNullOrWhiteSpace(manualName) ? "Producto suelto" : manualName.Trim(),
+                ManualUnitPrice = amount,
+                Quantity = 1,
+                UnitOfMeasure = "Unidad"
+            });
+
+            SaveCart(cart);
+
+            TempData["success"] = "Producto suelto agregado al carrito";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Plus(int articleId)
         {
             var article = _workContainer.Article.Get(articleId);
@@ -125,7 +152,7 @@ namespace Rincon.Areas.Employee.Controllers
         {
             var article = _workContainer.Article.Get(articleId);
             var cart = GetCart();
-            var item = cart.FirstOrDefault(i => i.ArticleId == articleId);
+            var item = cart.FirstOrDefault(i => !i.IsManual && i.ArticleId == articleId);
 
             if (article == null || item == null)
             {
@@ -150,7 +177,7 @@ namespace Rincon.Areas.Employee.Controllers
         {
             var article = _workContainer.Article.Get(articleId);
             var cart = GetCart();
-            var item = cart.FirstOrDefault(i => i.ArticleId == articleId);
+            var item = cart.FirstOrDefault(i => !i.IsManual && i.ArticleId == articleId);
 
             if (article == null || item == null)
             {
@@ -185,10 +212,12 @@ namespace Rincon.Areas.Employee.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Remove(int articleId)
+        public IActionResult Remove(int? articleId, string? lineId)
         {
             var cart = GetCart();
-            var item = cart.FirstOrDefault(i => i.ArticleId == articleId);
+            var item = !string.IsNullOrWhiteSpace(lineId)
+                ? cart.FirstOrDefault(i => i.LineId == lineId)
+                : cart.FirstOrDefault(i => !i.IsManual && i.ArticleId == articleId);
 
             if (item != null)
             {
@@ -232,7 +261,25 @@ namespace Rincon.Areas.Employee.Controllers
 
             foreach (var cartItem in cart)
             {
-                var article = _workContainer.Article.Get(cartItem.ArticleId);
+                if (cartItem.IsManual)
+                {
+                    if (cartItem.Quantity <= 0 || cartItem.ManualUnitPrice <= 0)
+                    {
+                        TempData["error"] = $"El importe de {cartItem.ManualName ?? "Producto suelto"} no es valido";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    total += cartItem.ManualUnitPrice * cartItem.Quantity;
+                    continue;
+                }
+
+                if (!cartItem.ArticleId.HasValue)
+                {
+                    TempData["error"] = "Uno de los artículos del carrito no es válido";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var article = _workContainer.Article.Get(cartItem.ArticleId.Value);
 
                 if (article == null || !article.isActive)
                 {
@@ -320,7 +367,31 @@ namespace Rincon.Areas.Employee.Controllers
 
             foreach (var cartItem in cart)
             {
-                var article = _workContainer.Article.Get(cartItem.ArticleId);
+                if (cartItem.IsManual)
+                {
+                    var manualSaleDetail = new SaleDetail
+                    {
+                        SaleId = sale.Id,
+                        ArticleId = null,
+                        ArticleName = string.IsNullOrWhiteSpace(cartItem.ManualName) ? "Producto suelto" : cartItem.ManualName,
+                        ArticleCode = "MANUAL",
+                        Quantity = cartItem.Quantity,
+                        UnitPrice = cartItem.ManualUnitPrice,
+                        Subtotal = cartItem.ManualUnitPrice * cartItem.Quantity,
+                        UnitOfMeasure = cartItem.UnitOfMeasure
+                    };
+
+                    _workContainer.SaleDetail.Add(manualSaleDetail);
+                    continue;
+                }
+
+                if (!cartItem.ArticleId.HasValue)
+                {
+                    TempData["error"] = "Ocurrió un error al procesar la venta";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var article = _workContainer.Article.Get(cartItem.ArticleId.Value);
 
                 if (article == null)
                 {
@@ -367,7 +438,7 @@ namespace Rincon.Areas.Employee.Controllers
             }
 
             var cart = GetCart();
-            var item = cart.FirstOrDefault(i => i.ArticleId == article.Id);
+            var item = cart.FirstOrDefault(i => !i.IsManual && i.ArticleId == article.Id);
             decimal quantityInCart = item?.Quantity ?? 0;
 
             if (quantityInCart + quantity > article.Stock)
@@ -381,6 +452,7 @@ namespace Rincon.Areas.Employee.Controllers
                 cart.Add(new ShoppingCartItemVM
                 {
                     ArticleId = article.Id,
+                    IsManual = false,
                     Quantity = quantity
                 });
             }
@@ -399,7 +471,27 @@ namespace Rincon.Areas.Employee.Controllers
 
             foreach (var cartItem in GetCart())
             {
-                var article = _workContainer.Article.Get(cartItem.ArticleId);
+                if (cartItem.IsManual)
+                {
+                    items.Add(new CartItemVM
+                    {
+                        LineId = cartItem.LineId,
+                        IsManual = true,
+                        ManualName = cartItem.ManualName,
+                        ManualUnitPrice = cartItem.ManualUnitPrice,
+                        Quantity = cartItem.Quantity,
+                        UnitOfMeasure = cartItem.UnitOfMeasure
+                    });
+
+                    continue;
+                }
+
+                if (!cartItem.ArticleId.HasValue)
+                {
+                    continue;
+                }
+
+                var article = _workContainer.Article.Get(cartItem.ArticleId.Value);
 
                 if (article == null || !article.isActive)
                 {
@@ -408,6 +500,7 @@ namespace Rincon.Areas.Employee.Controllers
 
                 items.Add(new CartItemVM
                 {
+                    LineId = cartItem.LineId,
                     Article = article,
                     Quantity = cartItem.Quantity
                 });

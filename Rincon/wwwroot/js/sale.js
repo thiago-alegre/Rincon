@@ -1,5 +1,7 @@
 $(document).ready(function () {
     const salesTable = $('#salesTable').DataTable({
+        processing: true,
+        serverSide: true,
         pageLength: 5,
         ajax: {
             url: '/Admin/Sales/GetAll',

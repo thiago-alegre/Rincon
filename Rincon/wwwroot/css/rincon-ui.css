@@ -506,6 +506,13 @@ table.dataTable tbody td {
     border-radius: 12px;
 }
 
+.personal-account-settle-form {
+    display: grid;
+    grid-template-columns: 1fr minmax(150px, 200px) minmax(170px, 220px) minmax(220px, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
 /* BADGES */
 
 .role-badge,
@@ -1169,7 +1176,8 @@ table.dataTable tbody td {
     }
 
     .cash-inline-form,
-    .cash-close-form {
+    .cash-close-form,
+    .personal-account-settle-form {
         grid-template-columns: 1fr;
         width: 100%;
     }

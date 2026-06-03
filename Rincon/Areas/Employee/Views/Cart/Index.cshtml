@@ -69,14 +69,14 @@
                 </div>
             </div>
 
-            <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-soft-secondary">
-                <i class="fa fa-table-cells-large me-2"></i> Ver catálogo
+            <a href="#searchString" class="btn btn-soft-secondary">
+                <i class="fa fa-magnifying-glass me-2"></i> Buscar producto
             </a>
         </div>
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-lg-7">
+        <div class="col-xl-4 col-lg-6">
             <div class="action-card h-100">
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <div class="action-icon">
@@ -103,13 +103,7 @@
                                autocomplete="off"
                                autofocus
                                placeholder="Código de barras o QR" />
-
-                        <input type="text"
-                               name="quantityText"
-                               class="form-control quantity-short"
-                               inputmode="decimal"
-                               placeholder="Cant./peso" />
-
+                                                      
                         <button type="submit" class="btn btn-primary btn-modern">
                             <i class="fa fa-plus me-2"></i> Agregar
                         </button>
@@ -118,7 +112,7 @@
             </div>
         </div>
 
-        <div class="col-lg-5">
+        <div class="col-xl-4 col-lg-6">
             <div class="action-card h-100">
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <div class="action-icon">
@@ -141,6 +135,44 @@
 
                         <button type="submit" class="btn btn-outline-primary btn-icon-search">
                             <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="action-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="action-icon">
+                        <i class="fa fa-tag"></i>
+                    </div>
+                    <div>
+                        <h2 class="action-title mb-0">Producto suelto</h2>
+                        <p class="action-description mb-0">Agregá un importe manual.</p>
+                    </div>
+                </div>
+
+                <form asp-area="Employee" asp-controller="Cart" asp-action="AddManual" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="input-group input-group-modern">
+                        <input type="text"
+                               name="manualName"
+                               class="form-control"
+                               autocomplete="off"
+                               placeholder="Producto suelto" />
+
+                        <span class="input-group-text">$</span>
+
+                        <input type="text"
+                               name="manualAmountText"
+                               class="form-control quantity-short"
+                               inputmode="decimal"
+                               placeholder="Importe" />
+
+                        <button type="submit" class="btn btn-primary btn-modern">
+                            <i class="fa fa-plus me-2"></i> Agregar
                         </button>
                     </div>
                 </form>
@@ -248,8 +280,8 @@
                     <i class="fa fa-barcode me-2"></i> Escanear producto
                 </a>
 
-                <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="btn btn-soft-secondary">
-                    <i class="fa fa-table-cells-large me-2"></i> Ver catálogo
+                <a href="#searchString" class="btn btn-soft-secondary">
+                    <i class="fa fa-magnifying-glass me-2"></i> Buscar producto
                 </a>
             </div>
         </div>
@@ -302,7 +334,13 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
-                                        @if (!string.IsNullOrEmpty(item.Article.ImageUrl))
+                                        @if (item.IsManual)
+                                        {
+                                            <div class="cart-product-placeholder">
+                                                <i class="fa fa-tag"></i>
+                                            </div>
+                                        }
+                                        else if (!string.IsNullOrEmpty(item.Article.ImageUrl))
                                         {
                                             <img src="@item.Article.ImageUrl"
                                                  alt="@item.Article.Name"
@@ -316,16 +354,24 @@
                                         }
 
                                         <div>
-                                            <div class="fw-semibold">@item.Article.Name</div>
-                                            <div class="small text-muted">Código: @item.Article.Code</div>
+                                            @if (item.IsManual)
+                                            {
+                                                <div class="fw-semibold">@(item.ManualName ?? "Producto suelto")</div>
+                                                <div class="small text-muted">Venta manual sin producto registrado</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="fw-semibold">@item.Article.Name</div>
+                                                <div class="small text-muted">Código: @item.Article.Code</div>
+                                            }
 
-                                            @if (item.ExceedsStock)
+                                            @if (!item.IsManual && item.ExceedsStock)
                                             {
                                                 <div class="small text-danger fw-semibold mt-1">
                                                     La cantidad supera el stock disponible.
                                                 </div>
                                             }
-                                            else if (item.ReachesMinimumStock)
+                                            else if (!item.IsManual && item.ReachesMinimumStock)
                                             {
                                                 <div class="small text-warning fw-semibold mt-1">
                                                     Después de vender quedará: @FormatQuantity(item.Article, item.RemainingStock)
@@ -336,61 +382,80 @@
                                 </td>
 
                                 <td>
-                                    <span class="fw-semibold">$ @item.Article.Price.ToString("N2")</span>
-                                    <span class="text-muted">/ @GetUnitText(item.Article)</span>
+                                    @if (item.IsManual)
+                                    {
+                                        <span class="fw-semibold">$ @item.ManualUnitPrice.ToString("N2")</span>
+                                        <span class="text-muted">/ manual</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-semibold">$ @item.Article.Price.ToString("N2")</span>
+                                        <span class="text-muted">/ @GetUnitText(item.Article)</span>
+                                    }
                                 </td>
 
                                 <td>
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Minus" method="post">
-                                            @Html.AntiForgeryToken()
+                                    @if (item.IsManual)
+                                    {
+                                        <span class="text-muted">1 manual</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <form asp-area="Employee" asp-controller="Cart" asp-action="Minus" method="post">
+                                                @Html.AntiForgeryToken()
 
-                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                                <input type="hidden" name="articleId" value="@item.Article.Id" />
 
-                                            <button type="submit" class="btn btn-quantity" title="Restar">
-                                                <i class="fa fa-minus"></i>
-                                            </button>
-                                        </form>
-
-                                        <form asp-area="Employee"
-                                              asp-controller="Cart"
-                                              asp-action="UpdateQuantity"
-                                              method="post"
-                                              class="d-flex align-items-center">
-                                            @Html.AntiForgeryToken()
-
-                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
-
-                                            <div class="input-group input-group-sm quantity-editor">
-                                                <input type="text"
-                                                       name="quantityText"
-                                                       class="form-control text-end"
-                                                       value="@GetQuantityInputValue(item.Article, item.Quantity)"
-                                                       inputmode="decimal"
-                                                       aria-label="Cantidad" />
-
-                                                <span class="input-group-text">@GetQuantityUnit(item.Article)</span>
-
-                                                <button type="submit" class="btn btn-outline-primary" title="Actualizar cantidad">
-                                                    <i class="fa fa-check"></i>
+                                                <button type="submit" class="btn btn-quantity" title="Restar">
+                                                    <i class="fa fa-minus"></i>
                                                 </button>
-                                            </div>
-                                        </form>
+                                            </form>
 
-                                        <form asp-area="Employee" asp-controller="Cart" asp-action="Plus" method="post">
-                                            @Html.AntiForgeryToken()
+                                            <form asp-area="Employee"
+                                                  asp-controller="Cart"
+                                                  asp-action="UpdateQuantity"
+                                                  method="post"
+                                                  class="d-flex align-items-center">
+                                                @Html.AntiForgeryToken()
 
-                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                                <input type="hidden" name="articleId" value="@item.Article.Id" />
 
-                                            <button type="submit" class="btn btn-quantity" title="Sumar">
-                                                <i class="fa fa-plus"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                                <div class="input-group input-group-sm quantity-editor">
+                                                    <input type="text"
+                                                           name="quantityText"
+                                                           class="form-control text-end"
+                                                           value="@GetQuantityInputValue(item.Article, item.Quantity)"
+                                                           inputmode="decimal"
+                                                           aria-label="Cantidad" />
+
+                                                    <span class="input-group-text">@GetQuantityUnit(item.Article)</span>
+
+                                                    <button type="submit" class="btn btn-outline-primary" title="Actualizar cantidad">
+                                                        <i class="fa fa-check"></i>
+                                                    </button>
+                                                </div>
+                                            </form>
+
+                                            <form asp-area="Employee" asp-controller="Cart" asp-action="Plus" method="post">
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden" name="articleId" value="@item.Article.Id" />
+
+                                                <button type="submit" class="btn btn-quantity" title="Sumar">
+                                                    <i class="fa fa-plus"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
                                 </td>
 
                                 <td>
-                                    @if (item.ExceedsStock)
+                                    @if (item.IsManual)
+                                    {
+                                        <span class="stock-text text-muted">No aplica</span>
+                                    }
+                                    else if (item.ExceedsStock)
                                     {
                                         <span class="stock-text text-danger">
                                             @FormatQuantity(item.Article, item.RemainingStock)
@@ -409,9 +474,12 @@
                                         </span>
                                     }
 
-                                    <div class="small text-muted">
-                                        Stock real: @FormatQuantity(item.Article, item.Article.Stock)
-                                    </div>
+                                    @if (!item.IsManual)
+                                    {
+                                        <div class="small text-muted">
+                                            Stock real: @FormatQuantity(item.Article, item.Article.Stock)
+                                        </div>
+                                    }
                                 </td>
 
                                 <td>
@@ -422,7 +490,14 @@
                                     <form asp-area="Employee" asp-controller="Cart" asp-action="Remove" method="post">
                                         @Html.AntiForgeryToken()
 
-                                        <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                        @if (item.IsManual)
+                                        {
+                                            <input type="hidden" name="lineId" value="@item.LineId" />
+                                        }
+                                        else
+                                        {
+                                            <input type="hidden" name="articleId" value="@item.Article.Id" />
+                                        }
 
                                         <button type="submit" class="btn btn-remove" title="Quitar">
                                             <i class="fa fa-trash"></i>
