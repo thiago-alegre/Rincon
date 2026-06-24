@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rincon.DataAccess.Data;
@@ -42,7 +42,7 @@ namespace Rincon.Areas.Employee.Controllers
 
             var pendingSales = _db.Sales
                 .AsNoTracking()
-                .Where(s => s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                .Where(s => !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
                 .Where(s => s.PersonalAccountId == id)
                 .ToList();
 
@@ -127,7 +127,7 @@ namespace Rincon.Areas.Employee.Controllers
             }
 
             var sales = _workContainer.Sale
-                .GetAll(s => s.PersonalAccountId == vm.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                .GetAll(s => s.PersonalAccountId == vm.Id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
                 .OrderBy(s => s.Date)
                 .ToList();
 
@@ -199,10 +199,66 @@ namespace Rincon.Areas.Employee.Controllers
 
             _workContainer.Save();
 
-            TempData["success"] = paymentAmount == pendingAmount
-                ? "Cuenta personal saldada correctamente"
-                : "Pago parcial registrado correctamente";
+            var remainingDebt = pendingAmount - paymentAmount;
+
+            TempData["modalTitle"] = remainingDebt <= 0
+                ? "Cuenta personal saldada"
+                : "Pago parcial registrado";
+            TempData["modalText"] = remainingDebt <= 0
+                ? $"Se registró un pago de $ {paymentAmount:N2}. La cuenta quedó sin deuda pendiente."
+                : $"Se registró un pago de $ {paymentAmount:N2}. Deuda restante: $ {remainingDebt:N2}.";
+            TempData["modalIcon"] = "success";
+            TempData["modalConfirmText"] = "Entendido";
             return RedirectToAction(nameof(Detail), new { id = vm.Id });
+        }
+
+        [HttpGet]
+        public IActionResult Search(string? term, int page = 1)
+        {
+            const int pageSize = 10;
+
+            page = page < 1 ? 1 : page;
+
+            var query = _db.PersonalAccounts
+                .AsNoTracking()
+                .Where(a => a.isActive);
+
+            if (!string.IsNullOrWhiteSpace(term))
+            {
+                var search = $"%{term.Trim()}%";
+
+                query = query.Where(a =>
+                    EF.Functions.Like(a.FullName, search) ||
+                    EF.Functions.Like(a.DNI, search) ||
+                    (a.Phone != null && EF.Functions.Like(a.Phone, search)) ||
+                    (a.Address != null && EF.Functions.Like(a.Address, search)));
+            }
+
+            var accounts = query
+                .OrderBy(a => a.FullName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize + 1)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.FullName,
+                    a.DNI,
+                    a.Phone
+                })
+                .ToList();
+
+            return Json(new
+            {
+                results = accounts.Take(pageSize).Select(a => new
+                {
+                    id = a.Id,
+                    text = $"{a.FullName} - DNI {a.DNI}" + (string.IsNullOrWhiteSpace(a.Phone) ? "" : $" - Tel. {a.Phone}")
+                }),
+                pagination = new
+                {
+                    more = accounts.Count > pageSize
+                }
+            });
         }
 
         [HttpGet]
@@ -226,10 +282,10 @@ namespace Rincon.Areas.Employee.Controllers
                     address = a.Address,
                     phone = a.Phone,
                     debtValue = _db.Sales
-                        .Where(s => s.PersonalAccountId == a.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Where(s => s.PersonalAccountId == a.Id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
                         .Sum(s => (decimal?)(s.Total - s.PersonalAccountPaidAmount)) ?? 0m,
                     debtSinceValue = _db.Sales
-                        .Where(s => s.PersonalAccountId == a.Id && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Where(s => s.PersonalAccountId == a.Id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
                         .Min(s => (DateTime?)s.Date)
                 });
 
@@ -309,21 +365,25 @@ namespace Rincon.Areas.Employee.Controllers
                     d.UnitPrice,
                     d.Subtotal,
                     d.Sale.PersonalAccountPaidAmount,
-                    d.Sale.IsPersonalAccountSettled
+                    d.Sale.IsPersonalAccountSettled,
+                    d.Sale.IsVoided
                 });
 
             var recordsTotal = query.Count();
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
-                var settledSearch = "saldada".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
-                var pendingSearch = "pendiente".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+                var search = searchValue.ToLower();
+                var settledSearch = "saldada".Contains(search);
+                var pendingSearch = "pendiente".Contains(search);
+                var voidedSearch = "anulada".Contains(search);
 
                 query = query.Where(d =>
                     d.ArticleName.Contains(searchValue) ||
                     d.UnitOfMeasure.Contains(searchValue) ||
+                    (voidedSearch && d.IsVoided) ||
                     (settledSearch && d.IsPersonalAccountSettled) ||
-                    (pendingSearch && !d.IsPersonalAccountSettled));
+                    (pendingSearch && !d.IsPersonalAccountSettled && !d.IsVoided));
             }
 
             var recordsFiltered = query.Count();
@@ -343,16 +403,24 @@ namespace Rincon.Areas.Employee.Controllers
                 .Skip(start)
                 .Take(length)
                 .ToList()
-                .Select(d => new
+                .Select(d =>
                 {
-                    date = d.saleDate.ToString("dd/MM/yyyy HH:mm"),
-                    product = d.ArticleName,
-                    quantity = $"{d.Quantity:N2} {d.UnitOfMeasure}",
-                    unitPrice = d.UnitPrice.ToString("N2"),
-                    subtotal = d.Subtotal.ToString("N2"),
-                    status = d.IsPersonalAccountSettled ? "Saldada" : "Pendiente",
-                    settled = d.IsPersonalAccountSettled,
-                    paidAmount = d.PersonalAccountPaidAmount.ToString("N2")
+                    var status = GetPersonalAccountSaleDetailStatus(
+                        d.IsVoided,
+                        d.IsPersonalAccountSettled);
+
+                    return new
+                    {
+                        date = d.saleDate.ToString("dd/MM/yyyy HH:mm"),
+                        product = d.ArticleName,
+                        quantity = FormatSaleQuantity(d.Quantity, d.UnitOfMeasure),
+                        unitPrice = d.UnitPrice.ToString("N2"),
+                        subtotal = d.Subtotal.ToString("N2"),
+                        status = status.Text,
+                        statusClass = status.ClassName,
+                        settled = d.IsPersonalAccountSettled,
+                        paidAmount = d.PersonalAccountPaidAmount.ToString("N2")
+                    };
                 });
 
             return Json(new
@@ -441,6 +509,7 @@ namespace Rincon.Areas.Employee.Controllers
         }
 
         [HttpDelete]
+        [ValidateAntiForgeryToken]
         [Authorize(Roles = SD.Role_Admin)]
         public IActionResult Delete(int id)
         {
@@ -452,7 +521,7 @@ namespace Rincon.Areas.Employee.Controllers
             }
 
             var hasDebt = _workContainer.Sale
-                .GetAll(s => s.PersonalAccountId == id && s.PaymentMethod == PaymentMethod.CuentaPersonal && !s.IsPersonalAccountSettled)
+                .GetAll(s => s.PersonalAccountId == id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && !s.IsPersonalAccountSettled)
                 .Any();
 
             if (hasDebt)
@@ -478,34 +547,34 @@ namespace Rincon.Areas.Employee.Controllers
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
         }
 
-        private bool TryParseDecimal(string? value, out decimal result)
+        private bool TryParseDecimal(string? value, out decimal result) => DecimalParser.TryParse(value, out result);
+
+        private static string FormatSaleQuantity(decimal quantity, string unitOfMeasure)
         {
-            result = 0;
-
-            if (string.IsNullOrWhiteSpace(value))
+            if (unitOfMeasure == "Kilogramo")
             {
-                return false;
+                var formatted = quantity % 1 == 0
+                    ? quantity.ToString("N0")
+                    : quantity.ToString("N3").TrimEnd('0').TrimEnd(',');
+
+                return $"{formatted} kg";
             }
 
-            value = value.Trim().Replace(" ", "");
-            bool hasComma = value.Contains(",");
-            bool hasDot = value.Contains(".");
+            return $"{quantity:N0}";
+        }
 
-            if (hasComma && hasDot)
+        private static (string Text, string ClassName) GetPersonalAccountSaleDetailStatus(
+            bool isVoided,
+            bool isSettled)
+        {
+            if (isVoided)
             {
-                int lastComma = value.LastIndexOf(",");
-                int lastDot = value.LastIndexOf(".");
-
-                value = lastComma > lastDot
-                    ? value.Replace(".", "").Replace(",", ".")
-                    : value.Replace(",", "");
-            }
-            else if (hasComma)
-            {
-                value = value.Replace(",", ".");
+                return ("Anulada", "status-inactive");
             }
 
-            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
+            return isSettled
+                ? ("Saldada", "status-active")
+                : ("Pendiente", "status-inactive");
         }
     }
 }

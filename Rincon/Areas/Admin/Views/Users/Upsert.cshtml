@@ -12,7 +12,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Usuarios</span>
-                <h1 class="admin-title h3 mb-1">@(Model.Id == null ? "Crear usuario" : "Editar usuario")</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">@(Model.Id == null ? "Crear usuario" : "Editar usuario")</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Formulario de usuario",
+                        Description = "Usá esta pantalla para registrar o modificar accesos al sistema.",
+                        Items = new[] { "El rol define qué secciones puede usar cada persona.", "El email se usa para iniciar sesión.", "Si editás un usuario, revisá el estado antes de guardar." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">
                     @(Model.Id == null ? "Registrá un nuevo usuario para operar el sistema." : "Actualizá los datos y permisos del usuario.")
                 </p>
@@ -85,6 +93,52 @@
                     Ejemplo: <strong>12345678Aa!</strong>
                 </div>
             }
+            else
+            {
+                <div class="mt-4">
+                    <span class="section-kicker">Acceso</span>
+                    <h2 class="section-title mb-2">Cambiar contraseña</h2>
+
+                    @if (!Model.CanChangePassword)
+                    {
+                        <div class="custom-alert-info mb-0">
+                            <i class="fa fa-shield-halved me-1"></i>
+                            @Model.PasswordProtectionMessage
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="custom-alert-info mb-3">
+                            <i class="fa fa-circle-info me-1"></i>
+                            Completá estos campos solo si querés cambiar la contraseña del usuario.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="NewPassword" class="form-label fw-semibold"></label>
+                                <div class="input-group">
+                                    <input asp-for="NewPassword" class="form-control password-toggle-input" autocomplete="new-password" />
+                                    <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-password-target="NewPassword" aria-label="Mostrar u ocultar contraseña">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                                <div class="input-group">
+                                    <input asp-for="ConfirmPassword" class="form-control password-toggle-input" autocomplete="new-password" />
+                                    <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-password-target="ConfirmPassword" aria-label="Mostrar u ocultar contraseña">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
 
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-soft-secondary">
@@ -101,4 +155,21 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll(".password-toggle-btn").forEach((button) => {
+            button.addEventListener("click", () => {
+                const input = document.getElementById(button.dataset.passwordTarget);
+                const icon = button.querySelector("i");
+
+                if (!input || !icon) {
+                    return;
+                }
+
+                const shouldShow = input.type === "password";
+                input.type = shouldShow ? "text" : "password";
+                icon.classList.toggle("fa-eye", !shouldShow);
+                icon.classList.toggle("fa-eye-slash", shouldShow);
+            });
+        });
+    </script>
 }

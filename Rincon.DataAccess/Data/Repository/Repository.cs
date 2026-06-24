@@ -24,12 +24,12 @@ namespace Rincon.DataAccess.Data.Repository
             dbSet.Add(entity);
         }
 
-        public T Get(int id)
+        public T? Get(int id)
         {
             return dbSet.Find(id);
         }
 
-        public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter = null, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null, string includeProperties = null)
+        public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter = null, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null, string? includeProperties = null)
         {
             IQueryable<T> query = dbSet;
             if (filter != null)
@@ -52,11 +52,10 @@ namespace Rincon.DataAccess.Data.Repository
             else
             {
                 return query.ToList();
-            }   
-            return query.ToList();
+            }
         }
 
-        public T GetFirstOrDefault(Expression<Func<T, bool>>? filter, string? includeProperties = null)
+        public T? GetFirstOrDefault(Expression<Func<T, bool>>? filter, string? includeProperties = null)
         {
             IQueryable<T> query = dbSet;
             if (filter != null)
@@ -77,8 +76,12 @@ namespace Rincon.DataAccess.Data.Repository
 
         public void Remove(int id)
         {
-            T entityToRemove = dbSet.Find(id);
-            Remove(entityToRemove);
+            T? entityToRemove = dbSet.Find(id);
+
+            if (entityToRemove != null)
+            {
+                Remove(entityToRemove);
+            }
         }
 
         public void Remove(T entity)

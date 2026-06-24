@@ -36,6 +36,8 @@ namespace Rincon.Models
         public ApplicationUser? User { get; set; }
 
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
+        public ICollection<SaleReturn> SaleReturns { get; set; } = new List<SaleReturn>();
+        public ICollection<SaleExchange> SaleExchanges { get; set; } = new List<SaleExchange>();
         public ICollection<PersonalAccountPayment> PersonalAccountPayments { get; set; } = new List<PersonalAccountPayment>();
 
         [NotMapped]

@@ -6,6 +6,8 @@ namespace Rincon.Models.ViewModels
         public DateTime DateTo { get; set; }
         public string GroupBy { get; set; } = "daily";
         public string Metric { get; set; } = "amount";
+        public string ProductMode { get; set; } = "top";
+        public int ProductLimit { get; set; } = 10;
 
         public StatisticsSummaryVM Summary { get; set; } = new();
         public List<StatisticsPeriodPointVM> PeriodSeries { get; set; } = new();

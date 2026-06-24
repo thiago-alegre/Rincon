@@ -17,7 +17,6 @@ namespace Rincon.Models.ViewModels
         [Display(Name = "Costo")]
         public string? CostText { get; set; }
 
-        [Required(ErrorMessage = "Ingrese el stock")]
         [Display(Name = "Stock")]
         public string? StockText { get; set; }
 

@@ -19,7 +19,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Turno</span>
-                <h1 class="admin-title h3 mb-1">Caja</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Caja</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar caja",
+                        Description = "La caja permite controlar el dinero y las ventas de cada turno.",
+                        Items = new[] { "Abrí caja al comenzar el turno ingresando el efectivo inicial.", "Las ventas confirmadas se suman automáticamente a la caja abierta.", "Al cerrar, ingresá el efectivo contado para comparar contra lo esperado.", "Podés tener varios cierres en un mismo día, uno por cada turno." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Abrí y cerrá la caja del turno para controlar el efectivo real.</p>
             </div>
         </div>
@@ -49,54 +57,70 @@
     }
     else
     {
-        <div class="row g-3 mb-4">
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Monto inicial</div>
-                    <div class="detail-metric-value">$ @Model.OpenSession.OpeningAmount.ToString("N2")</div>
+        <div class="row g-3 mb-4 align-items-stretch">
+            <div class="col-xl-8">
+                <div class="row g-3 h-100">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Monto inicial</div>
+                            <div class="detail-metric-value">$ @Model.OpenSession.OpeningAmount.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Efectivo vendido</div>
+                            <div class="detail-metric-value">$ @Model.CurrentSummary.CashSales.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Transferencia vendida</div>
+                            <div class="detail-metric-value">$ @Model.CurrentSummary.TransferSales.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Cuenta personal</div>
+                            <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountSales.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Cobros cuenta personal</div>
+                            <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountCashPayments.ToString("N2")</div>
+                            <div class="small text-muted">Transferencia: $ @Model.CurrentSummary.PersonalAccountTransferPayments.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Anulaciones</div>
+                            <div class="detail-metric-value text-danger">-$ @Model.CurrentSummary.TotalReturns.ToString("N2")</div>
+                            <div class="small text-muted">Efectivo: -$ @Model.CurrentSummary.CashReturns.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="detail-metric-card">
+                            <div class="detail-metric-label">Ventas del turno</div>
+                            <div class="detail-metric-value">@Model.CurrentSummary.SalesCount</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Efectivo vendido</div>
-                    <div class="detail-metric-value">$ @Model.CurrentSummary.CashSales.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Transferencia vendida</div>
-                    <div class="detail-metric-value">$ @Model.CurrentSummary.TransferSales.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Cuenta personal</div>
-                    <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountSales.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Cobros cuenta personal</div>
-                    <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountCashPayments.ToString("N2")</div>
-                    <div class="small text-muted">Transferencia: $ @Model.CurrentSummary.PersonalAccountTransferPayments.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Total vendido</div>
-                    <div class="detail-metric-value success">$ @Model.CurrentSummary.TotalSales.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Efectivo esperado</div>
-                    <div class="detail-metric-value success">$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="detail-metric-card">
-                    <div class="detail-metric-label">Ventas del turno</div>
-                    <div class="detail-metric-value">@Model.CurrentSummary.SalesCount</div>
+
+            <div class="col-xl-4">
+                <div class="row g-3 h-100">
+                    <div class="col-md-6 col-xl-12">
+                        <div class="detail-metric-card cash-priority-card">
+                            <div class="detail-metric-label">Total vendido</div>
+                            <div class="detail-metric-value success">$ @Model.CurrentSummary.TotalSales.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-12">
+                        <div class="detail-metric-card cash-priority-card">
+                            <div class="detail-metric-label">Efectivo esperado</div>
+                            <div class="detail-metric-value success">$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -136,6 +160,7 @@
             <table id="cashRegisterTable" class="table custom-table mb-0 w-100">
                 <thead>
                     <tr>
+                        <th>Caja</th>
                         <th>Usuario</th>
                         <th>Apertura</th>
                         <th>Cierre</th>
@@ -144,6 +169,7 @@
                         <th>Efectivo contado</th>
                         <th>Diferencia</th>
                         <th>Estado</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
             </table>

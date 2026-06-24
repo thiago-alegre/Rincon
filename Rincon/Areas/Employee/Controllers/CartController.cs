@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using Rincon.DataAccess.Data;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Extensions;
 using Rincon.Models;
@@ -18,10 +20,12 @@ namespace Rincon.Areas.Employee.Controllers
     {
         private const string SessionCart = "SessionShoppingCart";
         private readonly IWorkContainer _workContainer;
+        private readonly ApplicationDbContext _db;
 
-        public CartController(IWorkContainer workContainer)
+        public CartController(IWorkContainer workContainer, ApplicationDbContext db)
         {
             _workContainer = workContainer;
+            _db = db;
         }
 
         public IActionResult Index(string? searchString)
@@ -197,7 +201,9 @@ namespace Rincon.Areas.Employee.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if (quantity > article.Stock)
+            var availableStock = GetAvailableStock(article);
+
+            if (quantity > availableStock)
             {
                 TempData["error"] = "La cantidad supera el stock disponible";
                 return RedirectToAction(nameof(Index));
@@ -299,9 +305,11 @@ namespace Rincon.Areas.Employee.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                if (cartItem.Quantity > article.Stock)
+                var availableStock = GetAvailableStock(article);
+
+                if (cartItem.Quantity > availableStock)
                 {
-                    TempData["error"] = $"Stock insuficiente para {article.Name}. Stock disponible: {article.Stock} {article.UnitOfMeasure}";
+                    TempData["error"] = $"Stock insuficiente para {article.Name}. Stock disponible: {availableStock} {article.UnitOfMeasure}";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -349,77 +357,103 @@ namespace Rincon.Areas.Employee.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var sale = new Sale
+            using var transaction = _db.Database.BeginTransaction();
+
+            try
             {
-                Date = DateTime.Now,
-                Total = total,
-                PaymentMethod = paymentMethod,
-                AmountReceived = amountReceived,
-                Change = change,
-                UserId = userId,
-                CashRegisterSessionId = openCashRegister.Id,
-                PersonalAccountId = paymentMethod == PaymentMethod.CuentaPersonal ? personalAccountId : null,
-                IsPersonalAccountSettled = paymentMethod != PaymentMethod.CuentaPersonal
-            };
-
-            _workContainer.Sale.Add(sale);
-            _workContainer.Save();
-
-            foreach (var cartItem in cart)
-            {
-                if (cartItem.IsManual)
+                var sale = new Sale
                 {
-                    var manualSaleDetail = new SaleDetail
-                    {
-                        SaleId = sale.Id,
-                        ArticleId = null,
-                        ArticleName = string.IsNullOrWhiteSpace(cartItem.ManualName) ? "Producto suelto" : cartItem.ManualName,
-                        ArticleCode = "MANUAL",
-                        Quantity = cartItem.Quantity,
-                        UnitPrice = cartItem.ManualUnitPrice,
-                        Subtotal = cartItem.ManualUnitPrice * cartItem.Quantity,
-                        UnitOfMeasure = cartItem.UnitOfMeasure
-                    };
-
-                    _workContainer.SaleDetail.Add(manualSaleDetail);
-                    continue;
-                }
-
-                if (!cartItem.ArticleId.HasValue)
-                {
-                    TempData["error"] = "Ocurrió un error al procesar la venta";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                var article = _workContainer.Article.Get(cartItem.ArticleId.Value);
-
-                if (article == null)
-                {
-                    TempData["error"] = "Ocurrió un error al procesar la venta";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                var saleDetail = new SaleDetail
-                {
-                    SaleId = sale.Id,
-                    ArticleId = article.Id,
-                    ArticleName = article.Name,
-                    ArticleCode = article.Code,
-                    Quantity = cartItem.Quantity,
-                    UnitPrice = article.Price,
-                    Subtotal = article.Price * cartItem.Quantity,
-                    UnitOfMeasure = article.UnitOfMeasure
+                    Date = DateTime.Now,
+                    Total = total,
+                    PaymentMethod = paymentMethod,
+                    AmountReceived = amountReceived,
+                    Change = change,
+                    UserId = userId,
+                    CashRegisterSessionId = openCashRegister.Id,
+                    PersonalAccountId = paymentMethod == PaymentMethod.CuentaPersonal ? personalAccountId : null,
+                    IsPersonalAccountSettled = paymentMethod != PaymentMethod.CuentaPersonal
                 };
 
-                _workContainer.SaleDetail.Add(saleDetail);
+                _workContainer.Sale.Add(sale);
+                _workContainer.Save();
 
-                article.Stock -= cartItem.Quantity;
-                _workContainer.Article.Update(article);
+                foreach (var cartItem in cart)
+                {
+                    if (cartItem.IsManual)
+                    {
+                        var manualSubtotal = cartItem.ManualUnitPrice * cartItem.Quantity;
+                        var manualSaleDetail = new SaleDetail
+                        {
+                            SaleId = sale.Id,
+                            ArticleId = null,
+                            ArticleName = string.IsNullOrWhiteSpace(cartItem.ManualName) ? "Producto suelto" : cartItem.ManualName,
+                            ArticleCode = "MANUAL",
+                            Quantity = cartItem.Quantity,
+                            UnitPrice = cartItem.ManualUnitPrice,
+                            UnitCost = 0,
+                            Subtotal = manualSubtotal,
+                            EstimatedProfit = 0,
+                            UnitOfMeasure = cartItem.UnitOfMeasure
+                        };
+
+                        _workContainer.SaleDetail.Add(manualSaleDetail);
+                        continue;
+                    }
+
+                    if (!cartItem.ArticleId.HasValue)
+                    {
+                        throw new InvalidOperationException("Artículo inválido en el carrito");
+                    }
+
+                    var article = _workContainer.Article.Get(cartItem.ArticleId.Value);
+
+                    if (article == null)
+                    {
+                        throw new InvalidOperationException("Artículo no disponible al procesar la venta");
+                    }
+
+                    var subtotal = article.Price * cartItem.Quantity;
+                    var unitCost = DeductArticleStock(article, cartItem.Quantity, out var batchConsumptions);
+                    var estimatedProfit = (article.Price - unitCost) * cartItem.Quantity;
+
+                    var saleDetail = new SaleDetail
+                    {
+                        SaleId = sale.Id,
+                        ArticleId = article.Id,
+                        ArticleName = article.Name,
+                        ArticleCode = article.Code,
+                        Quantity = cartItem.Quantity,
+                        UnitPrice = article.Price,
+                        UnitCost = unitCost,
+                        Subtotal = subtotal,
+                        EstimatedProfit = estimatedProfit,
+                        UnitOfMeasure = article.UnitOfMeasure
+                    };
+
+                    _workContainer.SaleDetail.Add(saleDetail);
+                    _workContainer.Save();
+
+                    foreach (var batchConsumption in batchConsumptions)
+                    {
+                        _workContainer.SaleDetailBatch.Add(new SaleDetailBatch
+                        {
+                            SaleDetailId = saleDetail.Id,
+                            ArticleBatchId = batchConsumption.ArticleBatchId,
+                            Quantity = batchConsumption.Quantity,
+                            UnitCost = batchConsumption.UnitCost
+                        });
+                    }
+                }
+
+                _workContainer.Save();
+                transaction.Commit();
             }
-
-
-            _workContainer.Save();
-
+            catch
+            {
+                transaction.Rollback();
+                TempData["error"] = "No se pudo registrar la venta. No se modificó el stock ni se guardó la venta.";
+                return RedirectToAction(nameof(Index));
+            }
             SaveCart(new List<ShoppingCartItemVM>());
 
             TempData["saleSuccess"] = "Venta registrada correctamente";
@@ -441,7 +475,9 @@ namespace Rincon.Areas.Employee.Controllers
             var item = cart.FirstOrDefault(i => !i.IsManual && i.ArticleId == article.Id);
             decimal quantityInCart = item?.Quantity ?? 0;
 
-            if (quantityInCart + quantity > article.Stock)
+            var availableStock = GetAvailableStock(article);
+
+            if (quantityInCart + quantity > availableStock)
             {
                 message = "La cantidad supera el stock disponible";
                 return false;
@@ -498,6 +534,8 @@ namespace Rincon.Areas.Employee.Controllers
                     continue;
                 }
 
+                article.Stock = GetAvailableStock(article);
+
                 items.Add(new CartItemVM
                 {
                     LineId = cartItem.LineId,
@@ -510,16 +548,7 @@ namespace Rincon.Areas.Employee.Controllers
             {
                 Items = items,
                 SearchString = searchString,
-                SearchResults = GetSearchResults(searchString),
-                PersonalAccountList = _workContainer.PersonalAccount
-                    .GetAll(a => a.isActive)
-                    .OrderBy(a => a.FullName)
-                    .Select(a => new SelectListItem
-                    {
-                        Text = $"{a.FullName} - DNI {a.DNI}",
-                        Value = a.Id.ToString()
-                    })
-                    .ToList()
+                SearchResults = GetSearchResults(searchString)
             };
         }
 
@@ -530,19 +559,28 @@ namespace Rincon.Areas.Employee.Controllers
                 return new List<Article>();
             }
 
-            string normalizedSearch = searchString.Trim().ToLower();
+            string normalizedSearch = searchString.Trim();
+            string likeSearch = $"%{normalizedSearch}%";
 
-            return _workContainer.Article.GetAll(
-                a => a.isActive == true,
-                includeProperties: "Category"
-            )
-            .Where(a =>
-                a.Name.ToLower().Contains(normalizedSearch) ||
-                a.Code.ToLower().Contains(normalizedSearch) ||
-                (a.Category != null && a.Category.Name.ToLower().Contains(normalizedSearch))
-            );
+            var articles = _db.Articles
+                .AsNoTracking()
+                .Include(a => a.Category)
+                .Where(a => a.isActive == true)
+                .Where(a =>
+                    EF.Functions.Like(a.Name, likeSearch) ||
+                    EF.Functions.Like(a.Code, likeSearch) ||
+                    (a.Category != null && EF.Functions.Like(a.Category.Name, likeSearch)))
+                .OrderBy(a => a.Name)
+                .Take(25)
+                .ToList();
+
+            foreach (var article in articles)
+            {
+                article.Stock = GetAvailableStock(article);
+            }
+
+            return articles;
         }
-
         private List<ShoppingCartItemVM> GetCart()
         {
             return HttpContext.Session.GetObject<List<ShoppingCartItemVM>>(SessionCart)
@@ -553,6 +591,71 @@ namespace Rincon.Areas.Employee.Controllers
         {
             HttpContext.Session.SetObject(SessionCart, cart);
         }
+
+        private decimal GetAvailableStock(Article article)
+        {
+            if (!article.UsesBatches)
+            {
+                return article.Stock;
+            }
+
+            var batchStock = _workContainer.ArticleBatch
+                .GetAll(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0)
+                .Sum(b => b.Quantity);
+
+            return batchStock;
+        }
+
+        private decimal DeductArticleStock(Article article, decimal quantity, out List<BatchConsumption> batchConsumptions)
+        {
+            batchConsumptions = new List<BatchConsumption>();
+
+            if (!article.UsesBatches)
+            {
+                article.Stock -= quantity;
+                _workContainer.Article.Update(article);
+                return article.Cost;
+            }
+
+            var batches = _workContainer.ArticleBatch
+                .GetAll(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0)
+                .OrderBy(b => b.ExpirationDate ?? DateTime.MaxValue)
+                .ThenBy(b => b.PurchaseDate)
+                .ToList();
+
+            var availableStock = batches.Sum(b => b.Quantity);
+
+            if (availableStock < quantity)
+            {
+                throw new InvalidOperationException("Stock insuficiente en lotes");
+            }
+
+            var remaining = quantity;
+            decimal consumedCost = 0;
+
+            foreach (var batch in batches)
+            {
+                if (remaining <= 0)
+                {
+                    break;
+                }
+
+                var consumed = Math.Min(batch.Quantity, remaining);
+                batch.Quantity -= consumed;
+                remaining -= consumed;
+                consumedCost += consumed * batch.Cost;
+                batchConsumptions.Add(new BatchConsumption(batch.Id, consumed, batch.Cost));
+
+                _workContainer.ArticleBatch.Update(batch);
+            }
+
+            article.Stock = batches.Sum(b => b.Quantity);
+            _workContainer.Article.Update(article);
+
+            return quantity > 0 ? consumedCost / quantity : article.Cost;
+        }
+
+        private sealed record BatchConsumption(int ArticleBatchId, decimal Quantity, decimal UnitCost);
 
         private decimal GetDefaultIncrement(Article article)
         {
@@ -574,37 +677,7 @@ namespace Rincon.Areas.Employee.Controllers
             return true;
         }
 
-        private bool TryParseDecimal(string? value, out decimal result)
-        {
-            result = 0;
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            value = value.Trim().Replace(" ", "");
-            bool hasComma = value.Contains(",");
-            bool hasDot = value.Contains(".");
-
-            if (hasComma && hasDot)
-            {
-                int lastComma = value.LastIndexOf(",");
-                int lastDot = value.LastIndexOf(".");
-
-                value = lastComma > lastDot
-                    ? value.Replace(".", "").Replace(",", ".")
-                    : value.Replace(",", "");
-            }
-            else if (hasComma)
-            {
-                value = value.Replace(",", ".");
-            }
-
-
-
-            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
-        }
+        private bool TryParseDecimal(string? value, out decimal result) => DecimalParser.TryParse(value, out result);
     }
 }
 

@@ -8,7 +8,7 @@
     @if (SignInManager.IsSignedIn(User))
     {
         var currentUser = await UserManager.GetUserAsync(User);
-        var displayName = currentUser?.FullName ?? currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "Usuario";
+        var displayName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "Usuario";
 
         <li class="nav-item d-flex align-items-center me-3">
             <span class="nav-link fw-semibold d-flex align-items-center gap-2">

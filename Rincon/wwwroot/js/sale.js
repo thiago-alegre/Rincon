@@ -23,6 +23,13 @@ $(document).ready(function () {
             },
             { data: 'user' },
             {
+                data: 'status',
+                render: function (data, type, row) {
+                    const className = row.isVoided ? 'status-inactive' : 'status-active';
+                    return `<span class="status-badge ${className}">${data}</span>`;
+                }
+            },
+            {
                 data: 'detailUrl',
                 render: function (data) {
                     return `

@@ -291,6 +291,9 @@ namespace Rincon.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("UsesBatches")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("isActive")
                         .HasColumnType("bit");
 

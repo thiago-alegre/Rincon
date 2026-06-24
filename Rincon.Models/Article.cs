@@ -38,6 +38,9 @@ namespace Rincon.Models
         [Range(0, double.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo")]
         public decimal StockMin { get; set; }
 
+        [Display(Name = "Usa stock por lotes")]
+        public bool UsesBatches { get; set; } = false;
+
         [Display(Name = "¿Se vende por peso?")]
         public bool IsSoldByWeight { get; set; } = false;
 
@@ -62,5 +65,7 @@ namespace Rincon.Models
 
         [ForeignKey("CategoryId")]
         public Category? Category { get; set; }
+
+        public ICollection<ArticleBatch> ArticleBatches { get; set; } = new List<ArticleBatch>();
     }
 }

@@ -12,7 +12,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Administración</span>
-                <h1 class="admin-title h3 mb-1">@ViewData["Title"]</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">@ViewData["Title"]</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Formulario de cuenta personal",
+                        Description = "Cargá los datos de la persona que podrá comprar a cuenta.",
+                        Items = new[] { "Nombre completo y DNI ayudan a identificar correctamente la cuenta.", "Teléfono y dirección son datos de contacto para seguimiento.", "Solo administradores pueden crear, editar o eliminar cuentas." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Datos de la persona habilitada para cuenta personal.</p>
             </div>
         </div>

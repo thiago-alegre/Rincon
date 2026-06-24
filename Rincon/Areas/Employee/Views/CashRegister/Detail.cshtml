@@ -1,0 +1,126 @@
+@model Rincon.Models.CashRegisterSession
+@using Rincon.Models.ViewModels
+
+@{
+    ViewData["Title"] = $"Detalle de caja #{Model.Id}";
+    var summary = ViewBag.Summary as CashRegisterSummaryVM ?? new CashRegisterSummaryVM();
+    var userName = Model.User != null
+        ? (!string.IsNullOrWhiteSpace(Model.User.FullName) ? Model.User.FullName : Model.User.Email ?? "Sin usuario")
+        : "Sin usuario";
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="bi bi-receipt-cutoff"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Caja #@Model.Id</span>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Detalle de caja</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Detalle de caja",
+                        Description = "Consultá las ventas y productos registrados durante esta caja.",
+                        Items = new[] { "Cada fila representa un producto vendido dentro de una venta.", "Usá el buscador para ubicar venta, producto, medio de pago o cuenta personal.", "Si la venta fue a cuenta personal, podés abrir la cuenta desde la columna correspondiente." }
+                    })
+                </div>
+                <p class="admin-subtitle mb-0">
+                    @userName · Apertura @Model.OpenedAt.ToString("dd/MM/yyyy HH:mm")
+                    @if (Model.ClosedAt.HasValue)
+                    {
+                        <span> · Cierre @Model.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                    }
+                </p>
+            </div>
+        </div>
+
+        <a asp-area="Employee" asp-controller="CashRegister" asp-action="Index" class="btn btn-soft-secondary">
+            <i class="fa fa-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Monto inicial</div>
+                <div class="detail-metric-value">$ @Model.OpeningAmount.ToString("N2")</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Total vendido</div>
+                <div class="detail-metric-value success">$ @summary.TotalSales.ToString("N2")</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Efectivo esperado</div>
+                <div class="detail-metric-value success">$ @summary.ExpectedCash.ToString("N2")</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Ventas</div>
+                <div class="detail-metric-value">@summary.SalesCount</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Anulaciones</div>
+                <div class="detail-metric-value text-danger">-$ @summary.TotalReturns.ToString("N2")</div>
+                <div class="small text-muted">@summary.ReturnsCount movimientos</div>
+                <div class="metric-breakdown mt-2">
+                    <span>Efectivo: -$ @summary.CashReturns.ToString("N2")</span>
+                    <span>Transferencia: -$ @summary.TransferReturns.ToString("N2")</span>
+                    <span>Cuenta personal: -$ @summary.PersonalAccountReturns.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="detail-metric-card">
+                <div class="detail-metric-label">Recambios</div>
+                <div class="detail-metric-value text-danger">-$ @summary.ExchangeLoss.ToString("N2")</div>
+                <div class="small text-muted">@summary.ExchangesCount movimientos</div>
+                <div class="metric-breakdown mt-2">
+                    <span>Efectivo: -$ @summary.CashExchangeLoss.ToString("N2")</span>
+                    <span>Transferencia: -$ @summary.TransferExchangeLoss.ToString("N2")</span>
+                    <span>Cuenta personal: -$ @summary.PersonalAccountExchangeLoss.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Historial</span>
+                <h2 class="section-title mb-0">Productos vendidos en esta caja</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive custom-table-wrapper">
+            <table id="cashRegisterDetailTable" class="table custom-table mb-0 w-100" data-session-id="@Model.Id">
+                <thead>
+                    <tr>
+                        <th>Fecha y hora</th>
+                        <th>Venta</th>
+                        <th>Movimiento</th>
+                        <th>Medio de pago</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                        <th>Cuenta personal</th>
+                        <th>Estado deuda</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/cashRegisterDetail.js" asp-append-version="true"></script>
+}

@@ -6,14 +6,19 @@ $(document).ready(function () {
 
 function loadDataTable() {
     dataTable = $('#tblArticles').DataTable({
+        processing: true,
+        serverSide: true,
         pageLength: 5,
         ajax: {
-            url: "/Admin/Articles/GetAll"
+            url: "/Admin/Articles/GetAll",
+            type: "GET",
+            datatype: "json"
         },
         columns: [
             {
                 data: "imageUrl",
                 width: "8%",
+                orderable: false,
                 render: function (data) {
                     if (data) {
                         return `
@@ -94,10 +99,14 @@ function loadDataTable() {
             {
                 data: "id",
                 width: "16%",
+                orderable: false,
                 render: function (data) {
                     return `
                         <div class="datatable-action-group">
-                            <a href="/Admin/Articles/Upsert/${data}" class="btn btn-soft-success btn-modern-sm" title="Editar artículo">
+                            <a href="/Admin/ArticleBatches/Index?articleId=${data}" class="btn btn-soft-box btn-modern-sm" title="Gestionar lotes">
+                                <i class="bi bi-boxes" aria-hidden="true"></i>
+                            </a>
+                            <a href="/Admin/Articles/Upsert/${data}" class="btn btn-soft-secondary btn-modern-sm" title="Editar artículo">
                                 <i class="fa fa-pencil" aria-hidden="true"></i>
                             </a>
                             <a onclick=Delete("/Admin/Articles/Delete/${data}") class="btn btn-soft-danger btn-modern-sm" title="Eliminar artículo">
@@ -194,7 +203,7 @@ function renderExpirationDate(data) {
         return `<span class="expiration-badge expiration-danger">Vencido - ${formattedDate}</span>`;
     }
 
-    if (diffDays <= 7) {
+    if (diffDays <= 10) {
         return `<span class="expiration-badge expiration-warning">Por vencer - ${formattedDate}</span>`;
     }
 

@@ -10,7 +10,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Administración</span>
-                <h1 class="admin-title h3 mb-1">Categorías</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Categorías</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar categorías",
+                        Description = "Las categorías sirven para ordenar los productos y facilitar búsquedas, reportes y estadísticas.",
+                        Items = new[] { "Creá categorías claras como Bebidas, Cigarrillos o Almacén.", "Usá Editar para corregir nombres o activar/desactivar una categoría.", "Eliminar deja de mostrar la categoría si ya no se usa en el local." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Organizá los grupos de productos del local.</p>
             </div>
         </div>

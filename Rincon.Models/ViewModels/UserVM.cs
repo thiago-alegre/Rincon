@@ -26,10 +26,23 @@ namespace Rincon.Models.ViewModels
         [Display(Name = "Dirección")]
         public string? Address { get; set; }
 
+        [DataType(DataType.Password)]
+        [Display(Name = "Nueva contraseña")]
+        public string? NewPassword { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirmar contraseña")]
+        [Compare("NewPassword", ErrorMessage = "Las contraseñas no coinciden")]
+        public string? ConfirmPassword { get; set; }
+
         [Required(ErrorMessage = "Debe seleccionar un rol")]
         [Display(Name = "Rol")]
         public string Role { get; set; }
 
         public IEnumerable<SelectListItem>? RoleList { get; set; }
+
+        public bool CanChangePassword { get; set; } = true;
+
+        public string? PasswordProtectionMessage { get; set; }
     }
 }

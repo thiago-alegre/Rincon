@@ -65,7 +65,15 @@
                 </div>
 
                 <div>
-                    <h3 class="cart-title mb-1">Carrito de venta</h3>
+                    <div class="d-flex align-items-center gap-2">
+                        <h3 class="cart-title mb-1">Carrito de venta</h3>
+                        @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                        {
+                            Title = "Cómo usar el carrito",
+                            Description = "Esta es la pantalla principal para registrar ventas del local.",
+                            Items = new[] { "Escaneá o ingresá el código del producto para agregarlo rápido.", "También podés buscar por nombre, código o categoría si el producto no tiene código a mano.", "Revisá cantidades, stock disponible, medio de pago y vuelto antes de confirmar la venta.", "Para productos no registrados, usá el ingreso manual con descripción y precio." }
+                        })
+                    </div>
                 </div>
             </div>
 
@@ -559,14 +567,23 @@
                             </select>
 
                             <div id="personalAccountPanel" class="mt-3 d-none">
-                                <label for="personalAccountId" class="form-label">Cuenta personal</label>
-                                <select id="personalAccountId" name="personalAccountId" class="form-select">
-                                    <option value="">Seleccione una cuenta</option>
-                                    @foreach (var account in Model.PersonalAccountList)
-                                    {
-                                        <option value="@account.Value">@account.Text</option>
-                                    }
-                                </select>
+                                <label for="personalAccountSearch" class="form-label">Cuenta personal</label>
+                                <input type="hidden" id="personalAccountId" name="personalAccountId" />
+
+                                <div class="personal-account-search-box">
+                                    <div class="input-group input-group-modern">
+                                        <span class="input-group-text">
+                                            <i class="fa fa-user-magnifying-glass"></i>
+                                        </span>
+                                        <input type="search"
+                                               id="personalAccountSearch"
+                                               class="form-control"
+                                               autocomplete="off"
+                                               placeholder="Buscá por nombre, DNI, teléfono o dirección" />
+                                    </div>
+
+                                    <div id="personalAccountResults" class="personal-account-results d-none"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -659,6 +676,10 @@
             const changeResult = document.getElementById("changeResult");
             const totalElement = document.getElementById("cartTotal");
             const saleSuccessModalElement = document.getElementById("saleSuccessModal");
+            const personalAccountId = document.getElementById("personalAccountId");
+            const personalAccountSearch = document.getElementById("personalAccountSearch");
+            const personalAccountResults = document.getElementById("personalAccountResults");
+            let personalAccountSearchTimeout;
 
             if (codeInput) {
                 codeInput.focus();
@@ -674,6 +695,13 @@
                 cashPaymentPanel.classList.toggle("d-none", selectedMethod !== "Efectivo");
                 nonCashNotice.classList.toggle("d-none", selectedMethod === "Efectivo");
                 personalAccountPanel.classList.toggle("d-none", selectedMethod !== "CuentaPersonal");
+
+                if (selectedMethod === "CuentaPersonal" && personalAccountSearch) {
+                    personalAccountSearch.focus();
+                    searchPersonalAccounts(personalAccountSearch.value);
+                } else {
+                    hidePersonalAccountResults();
+                }
             }
 
             if (paymentMethod) {
@@ -750,6 +778,97 @@
             if (saleSuccessModalElement) {
                 const saleSuccessModal = new bootstrap.Modal(saleSuccessModalElement);
                 saleSuccessModal.show();
+            }
+
+            function searchPersonalAccounts(term) {
+                if (!personalAccountResults) {
+                    return;
+                }
+
+                personalAccountResults.innerHTML = '<div class="personal-account-result-message">Buscando...</div>';
+                personalAccountResults.classList.remove("d-none");
+
+                const url = `/Employee/PersonalAccounts/Search?term=${encodeURIComponent(term || "")}&page=1`;
+
+                fetch(url, { headers: { "Accept": "application/json" } })
+                    .then(response => response.json())
+                    .then(data => renderPersonalAccountResults(data.results || []))
+                    .catch(() => {
+                        personalAccountResults.innerHTML = '<div class="personal-account-result-message text-danger">No se pudieron cargar las cuentas.</div>';
+                    });
+            }
+
+            function renderPersonalAccountResults(accounts) {
+                if (!personalAccountResults) {
+                    return;
+                }
+
+                if (!accounts.length) {
+                    personalAccountResults.innerHTML = '<div class="personal-account-result-message">Sin resultados</div>';
+                    personalAccountResults.classList.remove("d-none");
+                    return;
+                }
+
+                personalAccountResults.innerHTML = accounts
+                    .map(account => `
+                        <button type="button"
+                                class="personal-account-result"
+                                data-account-id="${account.id}"
+                                data-account-text="${escapeHtml(account.text)}">
+                            <i class="fa fa-user me-2"></i>
+                            <span>${escapeHtml(account.text)}</span>
+                        </button>
+                    `)
+                    .join("");
+
+                personalAccountResults.classList.remove("d-none");
+            }
+
+            function hidePersonalAccountResults() {
+                if (personalAccountResults) {
+                    personalAccountResults.classList.add("d-none");
+                }
+            }
+
+            function escapeHtml(value) {
+                return String(value || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            if (personalAccountSearch && personalAccountId && personalAccountResults) {
+                personalAccountSearch.addEventListener("input", function () {
+                    personalAccountId.value = "";
+                    window.clearTimeout(personalAccountSearchTimeout);
+                    personalAccountSearchTimeout = window.setTimeout(() => {
+                        searchPersonalAccounts(personalAccountSearch.value);
+                    }, 220);
+                });
+
+                personalAccountSearch.addEventListener("focus", function () {
+                    searchPersonalAccounts(personalAccountSearch.value);
+                });
+
+                personalAccountResults.addEventListener("click", function (event) {
+                    const option = event.target.closest(".personal-account-result");
+
+                    if (!option) {
+                        return;
+                    }
+
+                    personalAccountId.value = option.dataset.accountId || "";
+                    personalAccountSearch.value = option.dataset.accountText || "";
+                    hidePersonalAccountResults();
+                });
+
+                document.addEventListener("click", function (event) {
+                    if (!event.target.closest(".personal-account-search-box")) {
+                        hidePersonalAccountResults();
+                    }
+                });
             }
         });
     </script>

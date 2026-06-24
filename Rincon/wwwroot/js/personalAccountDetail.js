@@ -39,8 +39,7 @@ $(document).ready(function () {
             {
                 data: 'status',
                 render: function (data, type, row) {
-                    const className = row.settled ? 'status-active' : 'status-inactive';
-                    return `<span class="status-badge ${className}">${data}</span>`;
+                    return `<span class="status-badge ${row.statusClass}">${data}</span>`;
                 }
             }
         ],

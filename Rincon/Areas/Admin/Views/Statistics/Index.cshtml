@@ -5,6 +5,11 @@
     ViewData["Title"] = "Estadísticas";
 
     var selectedMetricLabel = Model.Metric == "amount" ? "Monto" : "Cantidad";
+    var selectedMetricLower = selectedMetricLabel.ToLower();
+    var productModeLabel = Model.ProductMode == "bottom" ? "menos vendidos" : "más vendidos";
+    var productTitle = $"Top productos {productModeLabel} por {selectedMetricLower}";
+    var productSubtitle = Model.Metric == "amount" ? "Ranking por facturación" : "Ranking por cantidad vendida";
+
     var periodTitle = Model.GroupBy switch
     {
         "monthly" => "Ventas por mes",
@@ -17,10 +22,11 @@
     var periodValues = JsonSerializer.Serialize(Model.PeriodSeries.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
     var categoryLabels = JsonSerializer.Serialize(Model.CategoryDistribution.Select(x => x.Category), chartOptions);
     var categoryValues = JsonSerializer.Serialize(Model.CategoryDistribution.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
-    var productLabels = JsonSerializer.Serialize(Model.TopProducts.Select(x => x.Product), chartOptions);
-    var productValues = JsonSerializer.Serialize(Model.TopProducts.Select(x => Model.Metric == "amount" ? x.Amount : x.Quantity), chartOptions);
     var userLabels = JsonSerializer.Serialize(Model.UserSales.Select(x => x.User), chartOptions);
     var userValues = JsonSerializer.Serialize(Model.UserSales.Select(x => Model.Metric == "amount" ? x.Amount : x.SalesCount), chartOptions);
+    var productMax = Model.TopProducts.Any()
+        ? Model.TopProducts.Max(x => Model.Metric == "amount" ? x.Amount : x.Quantity)
+        : 0m;
 }
 
 @functions {
@@ -33,6 +39,11 @@
 
         return $"{value:N0} u";
     }
+
+    private string FormatProductMetric(decimal value, string metric)
+    {
+        return metric == "amount" ? $"$ {value:N2}" : value.ToString("N2");
+    }
 }
 
 <div class="admin-page py-4">
@@ -43,24 +54,35 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Administración</span>
-                <h1 class="admin-title h3 mb-1">Estadísticas</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Estadísticas</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar estadísticas",
+                        Description = "Analizá el rendimiento del negocio usando ventas, productos, usuarios y stock.",
+                        Items = new[] { "Elegí fechas, agrupación y métrica para cambiar los gráficos.", "Monto muestra facturación; cantidad muestra volumen vendido.", "Exportar Excel descarga las ventas y detalles del período filtrado.", "Bajo stock ayuda a detectar productos que necesitan reposición." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Resumen financiero, productos vendidos, categorías y alertas de stock.</p>
             </div>
         </div>
 
         <a asp-area="Admin"
            asp-controller="Statistics"
-           asp-action="ExportCsv"
+           asp-action="ExportExcel"
            asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")"
            asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")"
            asp-route-groupBy="@Model.GroupBy"
            asp-route-metric="@Model.Metric"
            class="btn btn-primary btn-modern">
-            <i class="fa fa-file-csv me-2"></i> Exportar CSV
+            <i class="fa fa-file-excel me-2"></i> Exportar ventas Excel
         </a>
     </div>
 
     <form method="get" class="stats-filter-bar mb-4">
+        <input type="hidden" name="productMode" value="@Model.ProductMode" />
+        <input type="hidden" name="productLimit" value="@Model.ProductLimit" />
+
         <div class="row g-3 align-items-end">
             <div class="col-md-3 col-xl-2">
                 <label class="stats-filter-label mb-1" for="dateFrom">Desde</label>
@@ -158,6 +180,9 @@
                         <span class="section-kicker">@selectedMetricLabel</span>
                         <h2 class="section-title mb-0">Ventas por usuario</h2>
                     </div>
+                    <a asp-area="Admin" asp-controller="Statistics" asp-action="ExportChartExcel" asp-route-chart="usuarios" asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")" asp-route-groupBy="@Model.GroupBy" asp-route-metric="@Model.Metric" asp-route-productMode="@Model.ProductMode" asp-route-productLimit="@Model.ProductLimit" class="btn btn-soft-secondary btn-modern-sm">
+                        <i class="fa fa-file-excel me-1"></i> Excel
+                    </a>
                 </div>
                 <div class="stats-chart-box">
                     <canvas id="userSalesChart"></canvas>
@@ -174,6 +199,9 @@
                         <span class="section-kicker">@selectedMetricLabel</span>
                         <h2 class="section-title mb-0">@periodTitle</h2>
                     </div>
+                    <a asp-area="Admin" asp-controller="Statistics" asp-action="ExportChartExcel" asp-route-chart="periodos" asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")" asp-route-groupBy="@Model.GroupBy" asp-route-metric="@Model.Metric" asp-route-productMode="@Model.ProductMode" asp-route-productLimit="@Model.ProductLimit" class="btn btn-soft-secondary btn-modern-sm">
+                        <i class="fa fa-file-excel me-1"></i> Excel
+                    </a>
                 </div>
                 <div class="stats-chart-box">
                     <canvas id="periodChart"></canvas>
@@ -183,9 +211,14 @@
 
         <div class="col-xl-5">
             <div class="stats-chart-card">
-                <div class="mb-3">
-                    <span class="section-kicker">@selectedMetricLabel</span>
-                    <h2 class="section-title mb-0">Distribución por categoría</h2>
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <span class="section-kicker">@selectedMetricLabel</span>
+                        <h2 class="section-title mb-0">Distribución por categoría</h2>
+                    </div>
+                    <a asp-area="Admin" asp-controller="Statistics" asp-action="ExportChartExcel" asp-route-chart="categorias" asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")" asp-route-groupBy="@Model.GroupBy" asp-route-metric="@Model.Metric" asp-route-productMode="@Model.ProductMode" asp-route-productLimit="@Model.ProductLimit" class="btn btn-soft-secondary btn-modern-sm">
+                        <i class="fa fa-file-excel me-1"></i> Excel
+                    </a>
                 </div>
                 <div class="stats-chart-box">
                     <canvas id="categoryChart"></canvas>
@@ -196,24 +229,75 @@
 
     <div class="row g-3 mb-4">
         <div class="col-xl-8">
-            <div class="stats-chart-card">
-                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-                    <div>
-                        <span class="section-kicker">Top 10</span>
-                        <h2 class="section-title mb-0">Top productos por @selectedMetricLabel.ToLower()</h2>
+            <div class="stats-chart-card stats-product-card">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stats-product-icon">
+                            <i class="bi bi-bar-chart-line"></i>
+                        </div>
+                        <div>
+                            <h2 class="section-title mb-1">@productTitle</h2>
+                            <p class="stats-product-subtitle mb-0">@productSubtitle</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+                        <form method="get" class="d-flex flex-wrap gap-2">
+                            <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="groupBy" value="@Model.GroupBy" />
+                            <input type="hidden" name="metric" value="@Model.Metric" />
+
+                            <select name="productMode" class="form-select form-select-sm stats-product-control" onchange="this.form.submit()">
+                                <option value="top" selected="@(Model.ProductMode == "top" ? "selected" : null)">Más vendidos</option>
+                                <option value="bottom" selected="@(Model.ProductMode == "bottom" ? "selected" : null)">Menos vendidos</option>
+                            </select>
+
+                            <select name="productLimit" class="form-select form-select-sm stats-product-control" onchange="this.form.submit()">
+                                <option value="10" selected="@(Model.ProductLimit == 10 ? "selected" : null)">Top 10</option>
+                                <option value="25" selected="@(Model.ProductLimit == 25 ? "selected" : null)">Top 25</option>
+                            </select>
+                        </form>
+
+                        <a asp-area="Admin" asp-controller="Statistics" asp-action="ExportChartExcel" asp-route-chart="productos" asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")" asp-route-groupBy="@Model.GroupBy" asp-route-metric="@Model.Metric" asp-route-productMode="@Model.ProductMode" asp-route-productLimit="@Model.ProductLimit" class="btn btn-soft-secondary btn-modern-sm">
+                            <i class="fa fa-file-excel me-1"></i> Excel
+                        </a>
                     </div>
                 </div>
-                <div class="stats-chart-box tall">
-                    <canvas id="topProductsChart"></canvas>
+
+                <div class="stats-product-ranking @(Model.ProductLimit == 25 ? "scrollable" : "")">
+                    <div class="stats-product-row stats-product-header">
+                        <span>Producto</span>
+                        <span>@(Model.Metric == "amount" ? "Facturación" : "Cantidad vendida")</span>
+                    </div>
+
+                    @foreach (var item in Model.TopProducts)
+                    {
+                        var value = Model.Metric == "amount" ? item.Amount : item.Quantity;
+                        var width = productMax > 0 ? Math.Max(8m, value / productMax * 100m) : 0m;
+
+                        <div class="stats-product-row">
+                            <div class="stats-product-name">@item.Product</div>
+                            <div class="stats-product-bar-track">
+                                <div class="stats-product-bar" style="width:@width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                            </div>
+                            <div class="stats-product-value">@FormatProductMetric(value, Model.Metric)</div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
 
         <div class="col-xl-4">
-            <div class="stats-chart-card">
-                <div class="mb-3">
-                    <span class="section-kicker">Stock mínimo</span>
-                    <h2 class="section-title mb-0">Bajo stock</h2>
+            <div class="stats-chart-card stats-low-stock-card">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <span class="section-kicker">Stock mínimo</span>
+                        <h2 class="section-title mb-0">Bajo stock</h2>
+                    </div>
+                    <a asp-area="Admin" asp-controller="Statistics" asp-action="ExportChartExcel" asp-route-chart="stock" asp-route-dateFrom="@Model.DateFrom.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo.ToString("yyyy-MM-dd")" asp-route-groupBy="@Model.GroupBy" asp-route-metric="@Model.Metric" asp-route-productMode="@Model.ProductMode" asp-route-productLimit="@Model.ProductLimit" class="btn btn-soft-secondary btn-modern-sm">
+                        <i class="fa fa-file-excel me-1"></i> Excel
+                    </a>
                 </div>
 
                 @if (!Model.LowStockItems.Any())
@@ -243,7 +327,7 @@
                     </div>
                 }
 
-                <div class="text-end mt-3">
+                <div class="stats-low-stock-footer text-end mt-3">
                     <a asp-area="Admin" asp-controller="Articles" asp-action="Index" class="btn btn-soft-secondary">
                         Ver todo el stock
                     </a>
@@ -251,7 +335,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @section Scripts {
@@ -343,31 +426,5 @@
                 }
             }
         });
-
-        new Chart(document.getElementById("topProductsChart"), {
-            type: "bar",
-            data: {
-                labels: @Html.Raw(productLabels),
-                datasets: [{
-                    label: "@selectedMetricLabel",
-                    data: @Html.Raw(productValues),
-                    backgroundColor: "rgba(13, 110, 253, 0.42)",
-                    borderColor: "#0d6efd",
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: { callbacks: { label: ctx => formatMetric(ctx.parsed.y) } }
-                },
-                scales: {
-                    x: { ticks: { maxRotation: 45, minRotation: 25 } },
-                    y: { ticks: { callback: value => formatMetric(value) } }
-                }
-            }
-        });
-
     </script>
 }

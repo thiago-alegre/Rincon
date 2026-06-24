@@ -47,6 +47,20 @@ namespace Rincon.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal PersonalAccountPaidAmount { get; set; } = 0;
 
+        public bool IsVoided { get; set; } = false;
+
+        public DateTime? VoidedAt { get; set; }
+
+        public string? VoidedByUserId { get; set; }
+
+        [ForeignKey("VoidedByUserId")]
+        public ApplicationUser? VoidedByUser { get; set; }
+
+        [MaxLength(500)]
+        public string? VoidReason { get; set; }
+
         public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
+        public ICollection<SaleReturn> SaleReturns { get; set; } = new List<SaleReturn>();
+        public ICollection<SaleExchange> SaleExchanges { get; set; } = new List<SaleExchange>();
     }
 }

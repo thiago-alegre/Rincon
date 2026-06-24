@@ -12,7 +12,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Cuenta personal</span>
-                <h1 class="admin-title h3 mb-1">@Model.Account.FullName</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">@Model.Account.FullName</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Detalle de cuenta personal",
+                        Description = "Revisá deuda, ventas asociadas y pagos registrados para esta persona.",
+                        Items = new[] { "Registrar pago permite saldar total o parcialmente la deuda.", "Las ventas pendientes muestran artículos, fechas y valores.", "Los pagos quedan registrados para controlar cuándo y cuánto abonó." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">DNI @Model.Account.DNI · @(Model.Account.Phone ?? "Sin teléfono")</p>
             </div>
         </div>

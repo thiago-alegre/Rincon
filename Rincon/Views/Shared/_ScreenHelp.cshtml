@@ -1,0 +1,49 @@
+@model Rincon.Models.ViewModels.ScreenHelpVM
+
+@{
+    var modalId = $"screenHelpModal_{Guid.NewGuid():N}";
+}
+
+<button type="button"
+        class="screen-help-button"
+        data-bs-toggle="modal"
+        data-bs-target="#@modalId"
+        title="Ayuda de esta pantalla"
+        aria-label="Ayuda de esta pantalla">
+    <i class="bi bi-question-lg"></i>
+</button>
+
+<div class="modal fade screen-help-modal" id="@modalId" tabindex="-1" aria-labelledby="@(modalId)_label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content screen-help-content">
+            <div class="modal-header screen-help-header">
+                <div>
+                    <span class="section-kicker">Ayuda</span>
+                    <h2 class="modal-title screen-help-title" id="@(modalId)_label">@Model.Title</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body screen-help-body">
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p class="screen-help-description">@Model.Description</p>
+                }
+
+                @if (Model.Items.Any())
+                {
+                    <ul class="screen-help-list">
+                        @foreach (var item in Model.Items)
+                        {
+                            <li>@item</li>
+                        }
+                    </ul>
+                }
+            </div>
+            <div class="modal-footer screen-help-footer">
+                <button type="button" class="btn btn-primary btn-modern" data-bs-dismiss="modal">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

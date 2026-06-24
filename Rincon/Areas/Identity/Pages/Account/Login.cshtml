@@ -88,9 +88,11 @@
                         Entrar
                     </button>
 
-                    <a id="forgot-password" class="auth-link text-center" asp-page="./ForgotPassword">
+                    <button id="forgot-password"
+                            type="button"
+                            class="auth-link text-center border-0 bg-transparent p-0">
                         Olvidé mi contraseña
-                    </a>
+                    </button>
                 </div>
             </form>
         </div>
@@ -99,4 +101,14 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById("forgot-password")?.addEventListener("click", function () {
+            rinconModal({
+                title: "Restablecer contraseña",
+                text: "Por seguridad, el restablecimiento de contraseña lo realiza un administrador. Comunicate con tu superior para que ingrese al sistema y te asigne una nueva contraseña desde la sección Usuarios.",
+                icon: "info",
+                confirmButtonText: "Entendido"
+            });
+        });
+    </script>
 }

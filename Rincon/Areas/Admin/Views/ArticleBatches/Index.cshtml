@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Lotes";
+    var article = ViewBag.Article as Rincon.Models.Article;
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="bi bi-boxes"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Stock por lotes</span>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">@article?.Name</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar lotes",
+                        Description = "Los lotes representan ingresos concretos de stock para este producto.",
+                        Items = new[] { "Cargá un lote cada vez que entra mercadería nueva.", "El vencimiento permite descontar primero lo que vence antes.", "El costo del lote se usa para calcular ganancia real en las ventas." }
+                    })
+                </div>
+                <p class="admin-subtitle mb-0">Controlá cantidad disponible, costo y vencimiento por lote.</p>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-area="Admin" asp-controller="Stock" asp-action="Index" class="btn btn-soft-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Volver
+            </a>
+            <a asp-area="Admin"
+               asp-controller="ArticleBatches"
+               asp-action="Upsert"
+               asp-route-articleId="@article?.Id"
+               class="btn btn-primary btn-modern">
+                <i class="bi bi-plus-circle me-1"></i> Crear lote
+            </a>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Listado</span>
+                <h2 class="section-title mb-0">Lotes del artículo</h2>
+            </div>
+        </div>
+
+        <div class="custom-table-wrapper">
+            <table id="articleBatchesTable" class="table custom-table mb-0 w-100" data-article-id="@article?.Id">
+                <thead>
+                    <tr>
+                        <th>Compra</th>
+                        <th>Vencimiento</th>
+                        <th>Disponible</th>
+                        <th>Inicial</th>
+                        <th>Costo</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/articleBatch.js" asp-append-version="true"></script>
+}

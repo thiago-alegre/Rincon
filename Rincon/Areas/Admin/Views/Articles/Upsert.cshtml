@@ -2,6 +2,12 @@
 
 @{
     ViewData["Title"] = Model.Article.Id == 0 ? "Crear Artículo" : "Editar Artículo";
+    var selectedCategory = Model.CategoryList.FirstOrDefault(c => c.Value == Model.Article.CategoryId.ToString());
+}
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 }
 
 <form method="post" asp-action="Upsert" enctype="multipart/form-data">
@@ -17,9 +23,17 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Artículos</span>
-                <h1 class="admin-title h3 mb-1">
-                    @(Model.Article.Id == 0 ? "Crear artículo" : "Editar artículo")
-                </h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">
+                        @(Model.Article.Id == 0 ? "Crear artículo" : "Editar artículo")
+                    </h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Formulario de artículo",
+                        Description = "Cargá los datos necesarios para que el producto funcione correctamente en ventas y reportes.",
+                        Items = new[] { "El código se usa para escanear o buscar rápido en el carrito.", "Precio es lo que paga el cliente; costo se usa para calcular ganancia.", "Elegí si la venta se calcula por kilogramo o por unidad.", "La imagen y el vencimiento ayudan al operador, pero pueden quedar vacíos si no aplican." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Cargá producto, precio, stock, vencimiento e imagen.</p>
             </div>
         </div>
@@ -57,27 +71,64 @@
 
                             <div class="col-md-6 mb-3">
                                 <label asp-for="Article.CategoryId" class="form-label"></label>
-                                <select asp-for="Article.CategoryId" asp-items="Model.CategoryList" class="form-select">
-                                    <option disabled selected value="">Seleccione una categoría</option>
+                                <select asp-for="Article.CategoryId"
+                                        class="form-select category-search-select"
+                                        data-placeholder="Seleccione una categoría">
+                                    @if (selectedCategory != null)
+                                    {
+                                        <option value="@selectedCategory.Value" selected>@selectedCategory.Text</option>
+                                    }
                                 </select>
                                 <span asp-validation-for="Article.CategoryId" class="text-danger"></span>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">¿Se vende por kg?</label>
+                            <div class="col-md-8 mb-3">
+                                <input asp-for="Article.IsSoldByWeight"
+                                       class="visually-hidden"
+                                       type="checkbox"
+                                       id="isSoldByWeightSwitch" />
 
-                                <div class="form-check form-switch">
-                                    <input asp-for="Article.IsSoldByWeight"
-                                           class="form-check-input admin-switch"
-                                           type="checkbox"
-                                           role="switch"
-                                           id="isSoldByWeightSwitch" />
+                                <label class="form-label d-block">Tipo de venta</label>
+                                <div class="article-sale-mode-toggle" role="group" aria-label="Tipo de venta del artículo">
+                                    <button type="button"
+                                            class="article-sale-mode-option"
+                                            data-weight-mode="true"
+                                            aria-pressed="false">
+                                        Venta por kilogramo
+                                    </button>
+                                    <button type="button"
+                                            class="article-sale-mode-option"
+                                            data-weight-mode="false"
+                                            aria-pressed="false">
+                                        Venta por unidad
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <label class="form-check-label fw-bold admin-switch-label" id="isSoldByWeightLabel" for="isSoldByWeightSwitch">
-                                        @(Model.Article.IsSoldByWeight ? "Sí, se vende por kg" : "No, se vende por unidad")
-                                    </label>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <input asp-for="Article.UsesBatches"
+                                       class="visually-hidden"
+                                       type="checkbox"
+                                       id="usesBatchesSwitch" />
+
+                                <label class="form-label d-block">Control de stock</label>
+                                <div class="article-sale-mode-toggle article-stock-mode-toggle" role="group" aria-label="Control de stock del artículo">
+                                    <button type="button"
+                                            class="article-sale-mode-option"
+                                            data-batch-mode="false"
+                                            aria-pressed="false">
+                                        Stock simple
+                                    </button>
+                                    <button type="button"
+                                            class="article-sale-mode-option"
+                                            data-batch-mode="true"
+                                            aria-pressed="false">
+                                        Stock por lotes
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -89,7 +140,7 @@
                                 </label>
                                 <input asp-for="PriceText"
                                        class="form-control"
-                                       placeholder="Precio de venta"
+                                       placeholder="$ 0,00"
                                        inputmode="decimal"
                                        autocomplete="off" />
                                 <span asp-validation-for="PriceText" class="text-danger"></span>
@@ -101,7 +152,7 @@
                                 </label>
                                 <input asp-for="CostText"
                                        class="form-control"
-                                       placeholder="Costo del producto"
+                                       placeholder="$ 0,00"
                                        inputmode="decimal"
                                        autocomplete="off" />
                                 <span asp-validation-for="CostText" class="text-danger"></span>
@@ -109,7 +160,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3 stock-simple-field">
                                 <label asp-for="StockText" class="form-label" id="stockLabel">
                                     Stock en unidades
                                 </label>
@@ -137,7 +188,7 @@
                                                 
                         <div class="row">
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3 stock-simple-field">
                                 <label asp-for="Article.ExpirationDate" class="form-label"></label>
                                 <input asp-for="Article.ExpirationDate" type="date" class="form-control" />
                                 <span asp-validation-for="Article.ExpirationDate" class="text-danger"></span>
@@ -184,6 +235,13 @@
                                 Este producto se vende por unidad. El precio y el costo corresponden a cada producto individual.
                             </div>
                         </div>
+
+                        <div class="custom-alert-warning text-start mt-3">
+                            <strong>Importante:</strong>
+                            <div>
+                                Si el artículo corresponde a uno o varios lotes, seleccioná Stock por lotes. En ese modo el stock y la fecha de vencimiento se cargan desde cada lote. El stock mínimo queda como alerta general del artículo. <strong>Luego de crear el artículo, agregá los lotes correspondientes.</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -208,9 +266,49 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const categorySelect = $(".category-search-select");
+
+            if (categorySelect.length) {
+                categorySelect.select2({
+                    theme: "bootstrap-5",
+                    width: "100%",
+                    placeholder: categorySelect.data("placeholder") || "Seleccione una categoría",
+                    allowClear: true,
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Admin/Category/Search",
+                        dataType: "json",
+                        delay: 200,
+                        data: function (params) {
+                            return {
+                                term: params.term || "",
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function (data) {
+                            return data;
+                        }
+                    },
+                    language: {
+                        inputTooShort: function () {
+                            return "Escribí para buscar";
+                        },
+                        searching: function () {
+                            return "Buscando...";
+                        },
+                        loadingMore: function () {
+                            return "Cargando más...";
+                        },
+                        noResults: function () {
+                            return "Sin resultados";
+                        }
+                    }
+                });
+            }
 
             // =========================
             // SWITCH ACTIVO / INACTIVO
@@ -245,7 +343,7 @@
             // SWITCH POR PESO / UNIDAD
             // =========================
             const weightSwitch = document.getElementById("isSoldByWeightSwitch");
-            const weightLabel = document.getElementById("isSoldByWeightLabel");
+            const saleModeButtons = document.querySelectorAll("[data-weight-mode]");
             const unitOfMeasureInput = document.getElementById("unitOfMeasureInput");
             const unitHelpText = document.getElementById("unitHelpText");
 
@@ -253,17 +351,18 @@
             const costLabel = document.getElementById("costLabel");
             const stockLabel = document.getElementById("stockLabel");
             const stockMinLabel = document.getElementById("stockMinLabel");
+            const usesBatchesSwitch = document.getElementById("usesBatchesSwitch");
+            const batchModeButtons = document.querySelectorAll("[data-batch-mode]");
+            const stockSimpleFields = document.querySelectorAll(".stock-simple-field");
+            const stockInput = document.getElementById("StockText");
+            const expirationInput = document.getElementById("Article_ExpirationDate");
 
             function updateWeightMode() {
-                if (!weightSwitch || !weightLabel || !unitOfMeasureInput) {
+                if (!weightSwitch || !unitOfMeasureInput) {
                     return;
                 }
 
                 if (weightSwitch.checked) {
-                    weightLabel.textContent = "Sí, se vende por kg";
-                    weightLabel.classList.remove("text-danger");
-                    weightLabel.classList.add("text-success");
-
                     unitOfMeasureInput.value = "Kilogramo";
 
                     if (priceLabel) priceLabel.textContent = "Precio de venta por kilogramo";
@@ -275,10 +374,6 @@
                         unitHelpText.innerText = "Este producto se vende por kg. Cargá precio, costo y stock tomando como referencia el kilogramo.";
                     }
                 } else {
-                    weightLabel.textContent = "No, se vende por unidad";
-                    weightLabel.classList.remove("text-success");
-                    weightLabel.classList.add("text-danger");
-
                     unitOfMeasureInput.value = "Unidad";
 
                     if (priceLabel) priceLabel.textContent = "Precio de venta por unidad";
@@ -290,6 +385,13 @@
                         unitHelpText.innerText = "Este producto se vende por unidad. El precio y el costo corresponden a cada producto individual.";
                     }
                 }
+
+                saleModeButtons.forEach(function (button) {
+                    const isSelected = button.dataset.weightMode === String(weightSwitch.checked);
+
+                    button.classList.toggle("active", isSelected);
+                    button.setAttribute("aria-pressed", String(isSelected));
+                });
             }
 
             updateWeightMode();
@@ -297,6 +399,72 @@
             if (weightSwitch) {
                 weightSwitch.addEventListener("change", updateWeightMode);
             }
+
+            saleModeButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!weightSwitch) {
+                        return;
+                    }
+
+                    weightSwitch.checked = button.dataset.weightMode === "true";
+                    weightSwitch.dispatchEvent(new Event("change", { bubbles: true }));
+                });
+            });
+
+            // =========================
+            // STOCK SIMPLE / LOTES
+            // =========================
+            function updateBatchMode() {
+                if (!usesBatchesSwitch) {
+                    return;
+                }
+
+                const usesBatches = usesBatchesSwitch.checked;
+
+                stockSimpleFields.forEach(function (field) {
+                    field.classList.toggle("d-none", usesBatches);
+                });
+
+                if (stockInput) {
+                    stockInput.disabled = usesBatches;
+
+                    if (usesBatches) {
+                        stockInput.value = "";
+                    }
+                }
+
+                if (expirationInput) {
+                    expirationInput.disabled = usesBatches;
+
+                    if (usesBatches) {
+                        expirationInput.value = "";
+                    }
+                }
+
+                batchModeButtons.forEach(function (button) {
+                    const isSelected = button.dataset.batchMode === String(usesBatches);
+
+                    button.classList.toggle("active", isSelected);
+                    button.setAttribute("aria-pressed", String(isSelected));
+                });
+            }
+
+            updateBatchMode();
+
+            if (usesBatchesSwitch) {
+                usesBatchesSwitch.addEventListener("change", updateBatchMode);
+            }
+
+            batchModeButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!usesBatchesSwitch) {
+                        return;
+                    }
+
+                    usesBatchesSwitch.checked = button.dataset.batchMode === "true";
+                    usesBatchesSwitch.dispatchEvent(new Event("change", { bubbles: true }));
+                });
+            });
 
             // =========================
             // PREVISUALIZACIÓN DE IMAGEN

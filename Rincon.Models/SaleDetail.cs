@@ -34,9 +34,21 @@ namespace Rincon.Models
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitCost { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Subtotal { get; set; }
 
         [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EstimatedProfit { get; set; }
+
+        [Required]
         public string UnitOfMeasure { get; set; }
+
+        public ICollection<SaleDetailBatch> SaleDetailBatches { get; set; } = new List<SaleDetailBatch>();
+        public ICollection<SaleReturnDetail> SaleReturnDetails { get; set; } = new List<SaleReturnDetail>();
+        public ICollection<SaleExchange> SaleExchanges { get; set; } = new List<SaleExchange>();
     }
 }

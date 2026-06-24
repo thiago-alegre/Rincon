@@ -1,13 +1,16 @@
 ﻿@using Rincon.Utilities
 @using Microsoft.AspNetCore.Identity
 @using Rincon.Models
+@using Microsoft.AspNetCore.Antiforgery
 
 @inject UserManager<ApplicationUser> UserManager
+@inject IAntiforgery Antiforgery
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="request-verification-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
     <title>@ViewData["Title"] - Rincon</title>
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -37,7 +40,7 @@
             ? await UserManager.GetUserAsync(User)
             : null;
 
-            var displayName = currentUser?.FullName ?? currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "Usuario";
+            var displayName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "Usuario";
 
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm mb-4">
                 <div class="container-fluid px-4">
@@ -116,6 +119,11 @@
                                                 </a>
                                             </li>
                                             <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Stock" asp-action="Index">
+                                                    <i class="bi bi-boxes me-2"></i> Lotes
+                                                </a>
+                                            </li>
+                                            <li>
                                                 <a class="dropdown-item" asp-area="Admin" asp-controller="Category" asp-action="Index">
                                                     <i class="bi bi-tags me-2"></i> Categorías
                                                 </a>
@@ -141,6 +149,11 @@
                                             <li>
                                                 <a class="dropdown-item" asp-area="Admin" asp-controller="Sales" asp-action="Index">
                                                     <i class="bi bi-receipt me-2"></i> Ventas
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Sales" asp-action="Voided">
+                                                    <i class="bi bi-x-octagon me-2"></i> Ventas anuladas
                                                 </a>
                                             </li>
                                             <li>
@@ -233,6 +246,23 @@
         </script>
     }
 
+    @if (TempData["modalTitle"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                rinconModal({
+                    title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalTitle"]?.ToString())),
+                    text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalText"]?.ToString() ?? "")),
+                    icon: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalIcon"]?.ToString() ?? "info")),
+                    confirmButtonText: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalConfirmText"]?.ToString() ?? "Entendido")),
+                    cancelButtonText: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalCancelText"]?.ToString() ?? "Cancelar")),
+                    confirmUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["modalConfirmUrl"]?.ToString())),
+                    showCancelButton: @((TempData["modalShowCancel"]?.ToString() == "true").ToString().ToLowerInvariant())
+                });
+            });
+        </script>
+    }
+
     <script>
         document.addEventListener("click", function (ev) {
             const btn = ev.target.closest("#logoutBtn");
@@ -266,3 +296,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

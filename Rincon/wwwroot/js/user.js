@@ -1,5 +1,7 @@
 ﻿$(document).ready(function () {
     $('#usersTable').DataTable({
+        processing: true,
+        serverSide: true,
         pageLength: 5,
         ajax: {
             url: '/Admin/Users/GetAll',
@@ -60,16 +62,30 @@
             {
                 data: null,
                 render: function (data) {
+                    const editButton = `
+                        <a href="/Admin/Users/Upsert/${data.id}" class="btn btn-soft-secondary btn-modern-sm">
+                            <i class="fa fa-pen me-1"></i> Editar
+                        </a>
+                    `;
+
+                    if (!data.canToggleStatus) {
+                        return `
+                            <div class="datatable-action-group">
+                                ${editButton}
+                                <button type="button" class="btn btn-soft-secondary btn-modern-sm" disabled title="${data.statusProtectionReason || 'Usuario protegido'}">
+                                    <i class="fa fa-shield-halved me-1"></i> Protegido
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     const toggleText = data.isActive ? 'Bloquear' : 'Activar';
                     const toggleIcon = data.isActive ? 'fa-lock' : 'fa-unlock';
                     const toggleClass = data.isActive ? 'btn-soft-danger' : 'btn-soft-success';
 
                     return `
                         <div class="datatable-action-group">
-                            <a href="/Admin/Users/Upsert/${data.id}" class="btn btn-soft-secondary btn-modern-sm">
-                                <i class="fa fa-pen me-1"></i> Editar
-                            </a>
-
+                            ${editButton}
                             <button onclick="toggleUserStatus('${data.id}')" class="btn ${toggleClass} btn-modern-sm">
                                 <i class="fa ${toggleIcon} me-1"></i> ${toggleText}
                             </button>

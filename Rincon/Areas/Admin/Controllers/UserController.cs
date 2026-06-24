@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using Rincon.DataAccess.Data;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
 using Rincon.Utilities;
@@ -15,13 +17,16 @@ namespace Rincon.Areas.Admin.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _db;
 
         public UsersController(
             UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext db)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _db = db;
         }
 
         public IActionResult Index()
@@ -60,6 +65,7 @@ namespace Rincon.Areas.Admin.Controllers
             vm.Address = user.Address;
             vm.Role = userRoles.FirstOrDefault() ?? SD.Role_Employee;
             vm.RoleList = roles;
+            SetPasswordProtection(vm, user, userRoles);
 
             return View(vm);
         }
@@ -96,10 +102,7 @@ namespace Rincon.Areas.Admin.Controllers
 
                 if (!result.Succeeded)
                 {
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError("", error.Description);
-                    }
+                    AddIdentityErrors(result);
 
                     return View(vm);
                 }
@@ -118,6 +121,15 @@ namespace Rincon.Areas.Admin.Controllers
                     return NotFound();
                 }
 
+                var oldRoles = await _userManager.GetRolesAsync(user);
+                SetPasswordProtection(vm, user, oldRoles);
+
+                if (!vm.CanChangePassword && !string.IsNullOrWhiteSpace(vm.NewPassword))
+                {
+                    ModelState.AddModelError("NewPassword", vm.PasswordProtectionMessage ?? "No podés cambiar la contraseña de este usuario.");
+                    return View(vm);
+                }
+
                 user.UserName = vm.Email;
                 user.Email = vm.Email;
                 user.FullName = vm.FullName;
@@ -129,17 +141,26 @@ namespace Rincon.Areas.Admin.Controllers
 
                 if (!result.Succeeded)
                 {
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError("", error.Description);
-                    }
+                    AddIdentityErrors(result);
 
                     return View(vm);
                 }
 
-                var oldRoles = await _userManager.GetRolesAsync(user);
                 await _userManager.RemoveFromRolesAsync(user, oldRoles);
                 await _userManager.AddToRoleAsync(user, vm.Role);
+
+                if (!string.IsNullOrWhiteSpace(vm.NewPassword))
+                {
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    var passwordResult = await _userManager.ResetPasswordAsync(user, token, vm.NewPassword);
+
+                    if (!passwordResult.Succeeded)
+                    {
+                        AddIdentityErrors(passwordResult);
+
+                        return View(vm);
+                    }
+                }
 
                 TempData["success"] = "Usuario actualizado correctamente";
                 return RedirectToAction(nameof(Index));
@@ -149,43 +170,81 @@ namespace Rincon.Areas.Admin.Controllers
         [HttpGet]
         public IActionResult GetAll()
         {
-            var users = _userManager.Users
-                .Select(u => new
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 5);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
+            var currentUserId = _userManager.GetUserId(User);
+
+            var query =
+                from user in _db.Users.AsNoTracking()
+                join userRole in _db.UserRoles.AsNoTracking()
+                    on user.Id equals userRole.UserId into userRoles
+                from userRole in userRoles.DefaultIfEmpty()
+                join role in _db.Roles.AsNoTracking()
+                    on userRole.RoleId equals role.Id into roles
+                from role in roles.DefaultIfEmpty()
+                select new
                 {
-                    id = u.Id,
-                    fullName = u.FullName,
-                    email = u.Email,
-                    dni = u.DNI,
-                    phoneNumber = u.PhoneNumber,
-                    isActive = u.IsActive
-                })
-                .ToList();
+                    id = user.Id,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    dni = user.DNI,
+                    phoneNumber = user.PhoneNumber,
+                    role = role != null && role.Name != null ? role.Name : "Sin rol",
+                    isActive = user.IsActive,
+                    canToggleStatus = user.Id != currentUserId
+                        && (role == null || role.Name != SD.Role_Admin),
+                    statusProtectionReason = user.Id == currentUserId
+                        ? "No podés bloquear tu propio usuario"
+                        : role != null && role.Name == SD.Role_Admin
+                            ? "Los administradores no se bloquean desde el sistema"
+                            : string.Empty
+                };
 
-            var result = new List<object>();
+            var recordsTotal = query.Count();
 
-            foreach (var user in users)
+            if (!string.IsNullOrWhiteSpace(searchValue))
             {
-                var appUser = _userManager.Users.FirstOrDefault(u => u.Id == user.id);
-                var roles = appUser != null
-                    ? _userManager.GetRolesAsync(appUser).GetAwaiter().GetResult()
-                    : new List<string>();
-
-                result.Add(new
-                {
-                    user.id,
-                    user.fullName,
-                    user.email,
-                    user.dni,
-                    user.phoneNumber,
-                    role = roles.FirstOrDefault() ?? "Sin rol",
-                    user.isActive
-                });
+                query = query.Where(u =>
+                    u.fullName.Contains(searchValue) ||
+                    (u.email != null && u.email.Contains(searchValue)) ||
+                    u.dni.Contains(searchValue) ||
+                    (u.phoneNumber != null && u.phoneNumber.Contains(searchValue)) ||
+                    u.role.Contains(searchValue));
             }
 
-            return Json(new { data = result });
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                0 => orderDirection == "asc" ? query.OrderBy(u => u.fullName) : query.OrderByDescending(u => u.fullName),
+                1 => orderDirection == "asc" ? query.OrderBy(u => u.email) : query.OrderByDescending(u => u.email),
+                2 => orderDirection == "asc" ? query.OrderBy(u => u.dni) : query.OrderByDescending(u => u.dni),
+                3 => orderDirection == "asc" ? query.OrderBy(u => u.phoneNumber) : query.OrderByDescending(u => u.phoneNumber),
+                4 => orderDirection == "asc" ? query.OrderBy(u => u.role) : query.OrderByDescending(u => u.role),
+                5 => orderDirection == "asc" ? query.OrderBy(u => u.isActive) : query.OrderByDescending(u => u.isActive),
+                _ => query.OrderBy(u => u.fullName)
+            };
+
+            var users = query
+                .Skip(start)
+                .Take(length)
+                .ToList();
+
+            return Json(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data = users
+            });
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -193,6 +252,24 @@ namespace Rincon.Areas.Admin.Controllers
             if (user == null)
             {
                 return Json(new { success = false, message = "Usuario no encontrado" });
+            }
+
+            if (user.Id == _userManager.GetUserId(User))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "No podés bloquear tu propio usuario administrador."
+                });
+            }
+
+            if (await _userManager.IsInRoleAsync(user, SD.Role_Admin))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "No se puede bloquear a otro administrador desde el sistema. Para dar de baja un administrador, comunicate con el dueño del sistema."
+                });
             }
 
             user.IsActive = !user.IsActive;
@@ -242,6 +319,48 @@ namespace Rincon.Areas.Admin.Controllers
                 SD.Role_Employee => "Empleado",
                 _ => roleName ?? "Sin rol"
             };
+        }
+
+        private void SetPasswordProtection(UserVM vm, ApplicationUser user, IEnumerable<string> userRoles)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            var isAnotherAdmin = user.Id != currentUserId && userRoles.Contains(SD.Role_Admin);
+
+            vm.CanChangePassword = !isAnotherAdmin;
+            vm.PasswordProtectionMessage = isAnotherAdmin
+                ? "No podés cambiar la contraseña de otro administrador. Si un administrador debe darse de baja o recuperar acceso, comunicate con el dueño del sistema."
+                : null;
+        }
+
+        private void AddIdentityErrors(IdentityResult result)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", GetIdentityErrorMessage(error));
+            }
+        }
+
+        private static string GetIdentityErrorMessage(IdentityError error)
+        {
+            return error.Code switch
+            {
+                nameof(IdentityErrorDescriber.PasswordRequiresNonAlphanumeric) => "La contraseña debe tener al menos un carácter especial, por ejemplo !, @ o #.",
+                nameof(IdentityErrorDescriber.PasswordRequiresLower) => "La contraseña debe tener al menos una letra minúscula.",
+                nameof(IdentityErrorDescriber.PasswordRequiresUpper) => "La contraseña debe tener al menos una letra mayúscula.",
+                nameof(IdentityErrorDescriber.PasswordRequiresDigit) => "La contraseña debe tener al menos un número.",
+                nameof(IdentityErrorDescriber.PasswordTooShort) => "La contraseña es demasiado corta.",
+                nameof(IdentityErrorDescriber.PasswordRequiresUniqueChars) => "La contraseña debe tener más caracteres diferentes.",
+                nameof(IdentityErrorDescriber.DuplicateUserName) => "Ya existe un usuario con ese email.",
+                nameof(IdentityErrorDescriber.DuplicateEmail) => "Ya existe un usuario con ese email.",
+                nameof(IdentityErrorDescriber.InvalidEmail) => "El email ingresado no es válido.",
+                nameof(IdentityErrorDescriber.InvalidUserName) => "El email ingresado no es válido como nombre de usuario.",
+                _ => error.Description
+            };
+        }
+
+        private int GetDataTablesInt(string key, int defaultValue = 0)
+        {
+            return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
         }
     }
     

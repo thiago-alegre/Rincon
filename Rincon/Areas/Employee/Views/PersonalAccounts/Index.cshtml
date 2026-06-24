@@ -11,7 +11,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Crédito interno</span>
-                <h1 class="admin-title h3 mb-1">Cuentas personales</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Cuentas personales</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar cuentas personales",
+                        Description = "Gestioná las ventas que quedan pendientes de pago para clientes con cuenta.",
+                        Items = new[] { "El listado muestra cuánto debe cada persona y desde cuándo.", "Ver detalle permite revisar ventas, artículos y pagos registrados.", "Los pagos parciales reducen la deuda pendiente; saldada aparece en verde." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Consultá deudas, ventas asociadas y saldos pendientes.</p>
             </div>
         </div>

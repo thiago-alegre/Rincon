@@ -15,9 +15,17 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Categorías</span>
-                <h1 class="admin-title h3 mb-1">
-                    @(Model.Id == 0 ? "Crear categoría" : "Editar categoría")
-                </h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">
+                        @(Model.Id == 0 ? "Crear categoría" : "Editar categoría")
+                    </h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Formulario de categoría",
+                        Description = "Usá este formulario para crear o modificar un grupo de productos.",
+                        Items = new[] { "El nombre debe ser claro porque se verá en artículos, búsquedas y estadísticas.", "El switch Activo/Inactivo controla si la categoría queda disponible.", "Volver cancela la edición sin guardar cambios." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Definí el nombre y el estado disponible para organizar productos.</p>
             </div>
         </div>

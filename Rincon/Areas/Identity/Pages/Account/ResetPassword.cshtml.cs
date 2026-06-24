@@ -73,44 +73,20 @@ public class ResetPasswordModel : PageModel
 
     public IActionResult OnGet(string? code = null)
     {
-        if (code == null)
-        {
-            return BadRequest("A code must be supplied for password reset.");
-        }
-        else
-        {
-            Input = new InputModel
-            {
-                Code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code))
-            };
-            return Page();
-        }
+        TempData["modalTitle"] = "Restablecer contraseña";
+        TempData["modalText"] = "Por seguridad, comunicate con tu superior o administrador para que te genere una nueva contraseña.";
+        TempData["modalIcon"] = "info";
+        TempData["modalConfirmText"] = "Entendido";
+        return RedirectToPage("./Login");
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid)
-        {
-            return Page();
-        }
-
-        var user = await _userManager.FindByEmailAsync(Input.Email);
-        if (user == null)
-        {
-            // Don't reveal that the user does not exist
-            return RedirectToPage("./ResetPasswordConfirmation");
-        }
-
-        var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
-        if (result.Succeeded)
-        {
-            return RedirectToPage("./ResetPasswordConfirmation");
-        }
-
-        foreach (var error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error.Description);
-        }
-        return Page();
+        await Task.CompletedTask;
+        TempData["modalTitle"] = "Restablecer contraseña";
+        TempData["modalText"] = "Por seguridad, comunicate con tu superior o administrador para que te genere una nueva contraseña.";
+        TempData["modalIcon"] = "info";
+        TempData["modalConfirmText"] = "Entendido";
+        return RedirectToPage("./Login");
     }
 }

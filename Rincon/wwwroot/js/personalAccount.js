@@ -33,7 +33,7 @@ $(document).ready(function () {
 
                     if (data.canManage) {
                         buttons += `
-                            <a href="${data.editUrl}" class="btn btn-soft-success btn-modern-sm">
+                            <a href="${data.editUrl}" class="btn btn-soft-secondary btn-modern-sm">
                                 <i class="fa fa-pen me-1"></i> Editar
                             </a>
                             <button type="button" class="btn btn-soft-danger btn-modern-sm" onclick="deletePersonalAccount(${data.id})">

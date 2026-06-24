@@ -1,0 +1,84 @@
+@model Rincon.Models.ViewModels.SalesIndexVM
+
+@{
+    ViewData["Title"] = "Ventas anuladas";
+}
+
+<div class="admin-page py-4">
+    <div class="admin-hero mb-4 d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="admin-hero-icon">
+                <i class="fa fa-ban"></i>
+            </div>
+            <div>
+                <span class="admin-eyebrow">Administraci&oacute;n</span>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Ventas anuladas</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Ventas anuladas",
+                        Description = "Consult&aacute; ventas que fueron anuladas y la fecha en que se registr&oacute; la anulaci&oacute;n.",
+                        Items = new[] { "Filtr&aacute; por usuario y fecha para revisar un turno puntual.", "La fecha de venta muestra cu&aacute;ndo se registr&oacute; la operaci&oacute;n original.", "La fecha de anulaci&oacute;n muestra cu&aacute;ndo se marc&oacute; la venta como anulada." }
+                    })
+                </div>
+                <p class="admin-subtitle mb-0">Las ventas anuladas no reponen stock. Los recambios descuentan el producto entregado sin sumar caja.</p>
+            </div>
+        </div>
+
+        <div class="sales-hero-filters">
+            <div class="sales-filter-field">
+                <label for="voidedSaleUserFilter">Usuario</label>
+                <select id="voidedSaleUserFilter" class="form-select">
+                    <option value="">Todos los usuarios</option>
+                    @foreach (var user in Model.UserList)
+                    {
+                        <option value="@user.Value" selected="@(Model.UserId == user.Value ? "selected" : null)">
+                            @user.Text
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="sales-filter-field">
+                <label for="voidedSaleDateFilter">Fecha</label>
+                <input id="voidedSaleDateFilter"
+                       type="date"
+                       class="form-control"
+                       value="@(Model.SaleDate.HasValue ? Model.SaleDate.Value.ToString("yyyy-MM-dd") : string.Empty)" />
+            </div>
+
+            <button id="clearVoidedSalesFilters" type="button" class="btn btn-soft-secondary">
+                <i class="fa fa-rotate-left me-1"></i> Eliminar filtros
+            </button>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <span class="section-kicker">Listado</span>
+                <h2 class="section-title mb-0">Ventas anuladas y recambios</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive custom-table-wrapper">
+            <table id="voidedSalesTable" class="table custom-table mb-0 w-100">
+                <thead>
+                    <tr>
+                        <th>Fecha de venta</th>
+                        <th>Fecha de movimiento</th>
+                        <th>Medio de pago</th>
+                        <th>Total</th>
+                        <th>Usuario</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/saleVoided.js" asp-append-version="true"></script>
+}

@@ -10,6 +10,12 @@ $(document).ready(function () {
         },
         columns: [
             {
+                data: 'cashRegisterNumber',
+                render: function (data) {
+                    return `<span class="fw-bold text-primary">${data}</span>`;
+                }
+            },
+            {
                 data: 'user',
                 render: function (data) {
                     return `<span class="fw-semibold">${data}</span>`;
@@ -71,11 +77,25 @@ $(document).ready(function () {
                     const className = row.isOpen ? 'status-active' : 'status-inactive';
                     return `<span class="status-badge ${className}">${data}</span>`;
                 }
+            },
+            {
+                data: 'detailUrl',
+                orderable: false,
+                searchable: false,
+                render: function (data) {
+                    return `
+                        <div class="datatable-action-group justify-content-end">
+                            <a href="${data}" class="btn btn-soft-secondary btn-modern-sm text-nowrap" title="Ver detalle de caja">
+                                <i class="bi bi-eye me-1"></i> Ver
+                            </a>
+                        </div>
+                    `;
+                }
             }
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        order: [[1, 'desc']]
+        order: [[0, 'desc']]
     });
 });

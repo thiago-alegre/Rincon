@@ -16,8 +16,19 @@ namespace Rincon.Models.ViewModels
         public decimal PersonalAccountCashPayments { get; set; }
         public decimal PersonalAccountTransferPayments { get; set; }
         public decimal TotalSales { get; set; }
+        public decimal CashReturns { get; set; }
+        public decimal TransferReturns { get; set; }
+        public decimal PersonalAccountReturns { get; set; }
+        public decimal TotalReturns { get; set; }
+        public decimal NetTotal { get; set; }
         public decimal ExpectedCash { get; set; }
+        public decimal ExchangeLoss { get; set; }
+        public decimal CashExchangeLoss { get; set; }
+        public decimal TransferExchangeLoss { get; set; }
+        public decimal PersonalAccountExchangeLoss { get; set; }
         public int SalesCount { get; set; }
+        public int ReturnsCount { get; set; }
+        public int ExchangesCount { get; set; }
     }
 
     public class CashRegisterOpenVM

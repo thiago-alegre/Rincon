@@ -10,7 +10,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Administración</span>
-                <h1 class="admin-title h3 mb-1">Artículos</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Artículos</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar artículos",
+                        Description = "Desde esta pantalla administrás los productos que se venden en el local.",
+                        Items = new[] { "Creá o editá productos con precio, costo, código, stock y vencimiento.", "Usá Lotes para cargar ingresos de mercadería y controlar vencimientos.", "El stock y los precios se usan luego en carrito, ventas, caja y estadísticas." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Gestioná productos, precios, stock y vencimientos.</p>
             </div>
         </div>

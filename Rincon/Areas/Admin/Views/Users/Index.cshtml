@@ -10,7 +10,15 @@
             </div>
             <div>
                 <span class="admin-eyebrow">Administración</span>
-                <h1 class="admin-title h3 mb-1">Usuarios</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="admin-title h3 mb-1">Usuarios</h1>
+                    @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
+                    {
+                        Title = "Cómo usar usuarios",
+                        Description = "Administrá quién puede ingresar al sistema y qué permisos tiene.",
+                        Items = new[] { "Creá usuarios empleados o administradores según su función.", "Bloquear impide el acceso sin borrar su historial.", "Editar permite actualizar datos personales, rol y estado." }
+                    })
+                </div>
                 <p class="admin-subtitle mb-0">Gestioná empleados, administradores y accesos al sistema.</p>
             </div>
         </div>

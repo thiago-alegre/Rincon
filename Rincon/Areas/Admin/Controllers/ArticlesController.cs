@@ -5,6 +5,8 @@ using Rincon.Models;
 using Rincon.Models.ViewModels;
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Rincon.DataAccess.Data;
 using Rincon.Utilities;
 
 namespace Rincon.Areas.Admin.Controllers
@@ -15,11 +17,14 @@ namespace Rincon.Areas.Admin.Controllers
     public class ArticlesController : Controller
     {
         private readonly IWorkContainer _workContainer;
+        private readonly ApplicationDbContext _db;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private const long MaxImageSizeBytes = 2 * 1024 * 1024;
 
-        public ArticlesController(IWorkContainer workContainer, IWebHostEnvironment webHostEnvironment)
+        public ArticlesController(IWorkContainer workContainer, ApplicationDbContext db, IWebHostEnvironment webHostEnvironment)
         {
             _workContainer = workContainer;
+            _db = db;
             _webHostEnvironment = webHostEnvironment;
         }
 
@@ -71,6 +76,7 @@ namespace Rincon.Areas.Admin.Controllers
             ModelState.Remove("Article.Cost");
             ModelState.Remove("Article.Stock");
             ModelState.Remove("Article.StockMin");
+            ModelState.Remove("Article.UsesBatches");
 
             var files = HttpContext.Request.Form.Files;
             IFormFile? uploadedFile = files.Count > 0 ? files[0] : null;
@@ -101,7 +107,18 @@ namespace Rincon.Areas.Admin.Controllers
                 articleVM.Article.Cost = parsedCost;
             }
 
-            if (!TryParseDecimal(articleVM.StockText, out decimal parsedStock))
+            if (articleVM.Article.UsesBatches)
+            {
+                ModelState.Remove("StockText");
+                ModelState.Remove("Article.ExpirationDate");
+                articleVM.Article.Stock = 0;
+                articleVM.Article.ExpirationDate = null;
+            }
+            else if (string.IsNullOrWhiteSpace(articleVM.StockText))
+            {
+                ModelState.AddModelError("StockText", "Ingrese el stock");
+            }
+            else if (!TryParseDecimal(articleVM.StockText, out decimal parsedStock))
             {
                 ModelState.AddModelError("StockText", "Ingrese un stock válido");
             }
@@ -147,7 +164,7 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (uploadedFile != null && uploadedFile.Length > 0 && !IsValidImageFile(uploadedFile))
             {
-                ModelState.AddModelError("Article.ImageUrl", "Seleccione una imagen válida (.jpg, .jpeg, .png o .webp)");
+                ModelState.AddModelError("Article.ImageUrl", "Seleccione una imagen válida de hasta 2 MB (.jpg, .jpeg, .png o .webp)");
             }
 
             if (!ModelState.IsValid)
@@ -179,10 +196,11 @@ namespace Rincon.Areas.Admin.Controllers
                 articleVM.Article.ImageUrl = oldImageUrl;
             }
 
-            if (articleVM.Article.Id == 0)
+            var isNewArticle = articleVM.Article.Id == 0;
+
+            if (isNewArticle)
             {
                 _workContainer.Article.Add(articleVM.Article);
-                TempData["success"] = "Artículo creado correctamente";
             }
             else
             {
@@ -192,6 +210,21 @@ namespace Rincon.Areas.Admin.Controllers
 
             _workContainer.Save();
 
+            if (isNewArticle && articleVM.Article.UsesBatches)
+            {
+                TempData["modalTitle"] = "Artículo creado correctamente";
+                TempData["modalText"] = $"El artículo {articleVM.Article.Name} usa stock por lotes. Para poder venderlo, cargá al menos un lote con cantidad, costo y vencimiento si corresponde.";
+                TempData["modalIcon"] = "success";
+                TempData["modalConfirmText"] = "Crear lote ahora";
+                TempData["modalCancelText"] = "Ir a artículos";
+                TempData["modalConfirmUrl"] = Url.Action("Upsert", "ArticleBatches", new { area = "Admin", articleId = articleVM.Article.Id });
+                TempData["modalShowCancel"] = "true";
+            }
+            else if (isNewArticle)
+            {
+                TempData["success"] = "Artículo creado correctamente";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -200,13 +233,116 @@ namespace Rincon.Areas.Admin.Controllers
         [HttpGet]
         public IActionResult GetAll()
         {
+            var draw = GetDataTablesInt("draw");
+            var start = GetDataTablesInt("start");
+            var length = GetDataTablesInt("length", 5);
+            var searchValue = Request.Query["search[value]"].ToString()?.Trim();
+            var orderColumn = GetDataTablesInt("order[0][column]");
+            var orderDirection = Request.Query["order[0][dir]"].ToString();
+
+            var query = _db.Articles
+                .AsNoTracking()
+                .Include(a => a.Category)
+                .AsQueryable();
+
+            var recordsTotal = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                query = query.Where(a =>
+                    a.Name.Contains(searchValue) ||
+                    a.Code.Contains(searchValue) ||
+                    (a.Description != null && a.Description.Contains(searchValue)) ||
+                    (a.Category != null && a.Category.Name.Contains(searchValue)));
+            }
+
+            var recordsFiltered = query.Count();
+
+            query = orderColumn switch
+            {
+                1 => orderDirection == "asc" ? query.OrderBy(a => a.Name) : query.OrderByDescending(a => a.Name),
+                2 => orderDirection == "asc" ? query.OrderBy(a => a.Code) : query.OrderByDescending(a => a.Code),
+                3 => orderDirection == "asc"
+                    ? query.OrderBy(a => a.Category != null ? a.Category.Name : string.Empty)
+                    : query.OrderByDescending(a => a.Category != null ? a.Category.Name : string.Empty),
+                4 => orderDirection == "asc" ? query.OrderBy(a => a.Price) : query.OrderByDescending(a => a.Price),
+                5 => orderDirection == "asc" ? query.OrderBy(a => a.Cost) : query.OrderByDescending(a => a.Cost),
+                6 => orderDirection == "asc"
+                    ? query.OrderBy(a => a.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == a.Id && b.IsActive && b.Quantity > 0)
+                            .Sum(b => (decimal?)b.Quantity) ?? 0
+                        : a.Stock)
+                    : query.OrderByDescending(a => a.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == a.Id && b.IsActive && b.Quantity > 0)
+                            .Sum(b => (decimal?)b.Quantity) ?? 0
+                        : a.Stock),
+                7 => orderDirection == "asc"
+                    ? query.OrderBy(a => a.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == a.Id && b.IsActive && b.Quantity > 0 && b.ExpirationDate.HasValue)
+                            .Min(b => b.ExpirationDate)
+                        : a.ExpirationDate)
+                    : query.OrderByDescending(a => a.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == a.Id && b.IsActive && b.Quantity > 0 && b.ExpirationDate.HasValue)
+                            .Min(b => b.ExpirationDate)
+                        : a.ExpirationDate),
+                8 => orderDirection == "asc" ? query.OrderBy(a => a.isActive) : query.OrderByDescending(a => a.isActive),
+                _ => query.OrderBy(a => a.Name)
+            };
+
+            var articles = query
+                .Skip(start)
+                .Take(length)
+                .Select(article => new
+                {
+                    article.Id,
+                    article.Name,
+                    article.Code,
+                    article.Description,
+                    article.Price,
+                    article.Cost,
+                    stock = article.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0)
+                            .Sum(b => (decimal?)b.Quantity) ?? 0
+                        : article.Stock,
+                    article.StockMin,
+                    article.UsesBatches,
+                    article.IsSoldByWeight,
+                    article.UnitOfMeasure,
+                    expirationDate = article.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0 && b.ExpirationDate.HasValue)
+                            .Min(b => b.ExpirationDate)
+                        : article.ExpirationDate,
+                    article.ImageUrl,
+                    article.Date,
+                    article.isActive,
+                    article.CategoryId,
+                    category = article.Category == null
+                        ? null
+                        : new
+                        {
+                            article.Category.Id,
+                            article.Category.Name
+                        }
+                })
+                .ToList();
+
             return Json(new
             {
-                data = _workContainer.Article.GetAll(includeProperties: "Category")
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data = articles
             });
         }
 
         [HttpDelete]
+        [ValidateAntiForgeryToken]
         public IActionResult Delete(int id)
         {
             var objFromDb = _workContainer.Article.Get(id);
@@ -254,98 +390,7 @@ namespace Rincon.Areas.Admin.Controllers
             return value.ToString("#,##0.##", CultureInfo.GetCultureInfo("es-AR"));
         }
 
-        private bool TryParseDecimal(string? value, out decimal result)
-        {
-            result = 0;
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            value = value.Trim();
-            value = value.Replace("$", "");
-            value = value.Replace(" ", "");
-
-            bool hasComma = value.Contains(",");
-            bool hasDot = value.Contains(".");
-
-            if (!hasComma && !hasDot)
-            {
-                return decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out result
-                );
-            }
-
-            if (hasComma && !hasDot)
-            {
-                int commaCount = value.Split(',').Length - 1;
-                int lastComma = value.LastIndexOf(",");
-                int digitsAfterComma = value.Length - lastComma - 1;
-
-                if (commaCount == 1 && digitsAfterComma == 3)
-                {
-                    value = value.Replace(",", "");
-                }
-                else
-                {
-                    value = value.Replace(",", ".");
-                }
-
-                return decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out result
-                );
-            }
-
-            if (hasDot && !hasComma)
-            {
-                int lastDot = value.LastIndexOf(".");
-                int digitsAfterDot = value.Length - lastDot - 1;
-
-                if (digitsAfterDot == 3)
-                {
-                    value = value.Replace(".", "");
-                }
-
-                return decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out result
-                );
-            }
-
-            if (hasComma && hasDot)
-            {
-                int lastComma = value.LastIndexOf(",");
-                int lastDot = value.LastIndexOf(".");
-
-                if (lastComma > lastDot)
-                {
-                    value = value.Replace(".", "");
-                    value = value.Replace(",", ".");
-                }
-                else
-                {
-                    value = value.Replace(",", "");
-                }
-
-                return decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out result
-                );
-            }
-
-            return false;
-        }
+        private bool TryParseDecimal(string? value, out decimal result) => DecimalParser.TryParse(value, out result);
 
         private void LoadArticleLists(ArticleVM articleVM)
         {
@@ -356,8 +401,57 @@ namespace Rincon.Areas.Admin.Controllers
         {
             string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-            return file.ContentType.StartsWith("image/")
-                && (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".webp");
+            if (file.Length <= 0 || file.Length > MaxImageSizeBytes)
+            {
+                return false;
+            }
+
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                return false;
+            }
+
+            if (extension != ".jpg" && extension != ".jpeg" && extension != ".png" && extension != ".webp")
+            {
+                return false;
+            }
+
+            using var stream = file.OpenReadStream();
+            Span<byte> header = stackalloc byte[12];
+            var bytesRead = stream.Read(header);
+
+            if (bytesRead < 4)
+            {
+                return false;
+            }
+
+            var isJpeg = header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF;
+            var isPng = bytesRead >= 8
+                && header[0] == 0x89
+                && header[1] == 0x50
+                && header[2] == 0x4E
+                && header[3] == 0x47
+                && header[4] == 0x0D
+                && header[5] == 0x0A
+                && header[6] == 0x1A
+                && header[7] == 0x0A;
+            var isWebp = bytesRead >= 12
+                && header[0] == 0x52
+                && header[1] == 0x49
+                && header[2] == 0x46
+                && header[3] == 0x46
+                && header[8] == 0x57
+                && header[9] == 0x45
+                && header[10] == 0x42
+                && header[11] == 0x50;
+
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => isJpeg,
+                ".png" => isPng,
+                ".webp" => isWebp,
+                _ => false
+            };
         }
 
         private string SaveArticleImage(IFormFile file)
@@ -387,6 +481,11 @@ namespace Rincon.Areas.Admin.Controllers
             {
                 System.IO.File.Delete(imagePath);
             }
+        }
+
+        private int GetDataTablesInt(string key, int defaultValue = 0)
+        {
+            return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
         }
 
         #endregion

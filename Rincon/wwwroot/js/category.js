@@ -6,9 +6,13 @@ $(document).ready(function () {
 
 function loadDataTable() {
     dataTable = $('#tblCategories').DataTable({
+        processing: true,
+        serverSide: true,
         pageLength: 5,
         ajax: {
-            url: "/Admin/Category/GetAll"
+            url: "/Admin/Category/GetAll",
+            type: "GET",
+            datatype: "json"
         },
         columns: [
             { data: "name", width: "30%" },
@@ -35,10 +39,11 @@ function loadDataTable() {
             {
                 data: "id",
                 width: "25%",
+                orderable: false,
                 render: function (data) {
                     return `
                         <div class="datatable-action-group">
-                            <a href="/Admin/Category/Upsert/${data}" class="btn btn-soft-success btn-modern-sm" title="Editar categoría">
+                            <a href="/Admin/Category/Upsert/${data}" class="btn btn-soft-secondary btn-modern-sm" title="Editar categoría">
                                 <i class="fa fa-pencil me-1" aria-hidden="true"></i> Editar
                             </a>
                             <a onclick=Delete("/Admin/Category/Delete/${data}") class="btn btn-soft-danger btn-modern-sm" title="Eliminar categoría">
