@@ -41,12 +41,12 @@
 
                 <div class="mb-3">
                     <label asp-for="Name" class="form-label"></label>
-                    <input asp-for="Name" class="form-control" placeholder="Ingrese el nombre de la categoría" />
+                    <input asp-for="Name" class="form-control" placeholder="Ingrese el nombre de la categoría" autocomplete="off" />
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="isActive" class="form-label"></label>
+                    <div class="form-label">Estado</div>
 
                     <div class="form-check form-switch">
                         <input asp-for="isActive"

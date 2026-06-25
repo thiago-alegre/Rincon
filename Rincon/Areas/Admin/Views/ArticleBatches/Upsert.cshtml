@@ -48,8 +48,8 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">@(isNew ? $"Cantidad que ingresa ({unitLabel})" : $"Cantidad disponible ({unitLabel})")</label>
-                    <input name="quantityText" class="form-control" value="@Model.Quantity.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" />
+                    <label class="form-label" for="quantityText">@(isNew ? $"Cantidad que ingresa ({unitLabel})" : $"Cantidad disponible ({unitLabel})")</label>
+                    <input id="quantityText" name="quantityText" class="form-control" value="@Model.Quantity.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" autocomplete="off" />
                     <small class="text-muted">
                         @(isNew ? "Ejemplo: 12 para doce unidades o 2,5 para dos kilos y medio." : "Este valor baja automáticamente cuando se venden productos de este lote.")
                     </small>
@@ -59,8 +59,8 @@
                 @if (!isNew)
                 {
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Cantidad inicial (@unitLabel)</label>
-                        <input name="initialQuantityText" class="form-control" value="@Model.InitialQuantity.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" />
+                        <label class="form-label" for="initialQuantityText">Cantidad inicial (@unitLabel)</label>
+                        <input id="initialQuantityText" name="initialQuantityText" class="form-control" value="@Model.InitialQuantity.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" autocomplete="off" />
                         <small class="text-muted">Sirve para comparar cuánto entró contra cuánto queda.</small>
                         <span asp-validation-for="InitialQuantity" class="text-danger"></span>
                     </div>
@@ -78,14 +78,14 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Costo de compra @costSuffix</label>
-                    <input name="costText" class="form-control" value="@Model.Cost.ToString("#,##0.##", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" />
+                    <label class="form-label" for="costText">Costo de compra @costSuffix</label>
+                    <input id="costText" name="costText" class="form-control" value="@Model.Cost.ToString("#,##0.##", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))" inputmode="decimal" autocomplete="off" />
                     <small class="text-muted">Se usa para calcular la ganancia real al vender este stock.</small>
                     <span asp-validation-for="Cost" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label asp-for="IsActive" class="form-label">Estado</label>
+                    <div class="form-label">Estado</div>
                     <div class="form-check form-switch">
                         <input asp-for="IsActive" class="form-check-input admin-switch" type="checkbox" role="switch" />
                         <label class="form-check-label fw-bold admin-switch-label" asp-for="IsActive">

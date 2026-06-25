@@ -432,8 +432,12 @@ namespace Rincon.Areas.Employee.Controllers
 
         private CashRegisterSummaryVM BuildSummary(CashRegisterSession session)
         {
-            var sales = _workContainer.Sale
-                .GetAll(s => s.CashRegisterSessionId == session.Id && !s.IsVoided)
+            var allSales = _workContainer.Sale
+                .GetAll(s => s.CashRegisterSessionId == session.Id)
+                .ToList();
+
+            var sales = allSales
+                .Where(s => !s.IsVoided)
                 .ToList();
 
             var returns = _workContainer.SaleReturn
@@ -496,6 +500,9 @@ namespace Rincon.Areas.Employee.Controllers
 
             var totalSales = sales.Sum(s => s.Total);
             var totalReturns = returns.Sum(r => r.Total);
+            var cashSalesForExpectedCash = allSales
+                .Where(s => s.PaymentMethod == PaymentMethod.Efectivo)
+                .Sum(s => s.Total);
 
             return new CashRegisterSummaryVM
             {
@@ -510,7 +517,7 @@ namespace Rincon.Areas.Employee.Controllers
                 PersonalAccountReturns = personalAccountReturns,
                 TotalReturns = totalReturns,
                 NetTotal = totalSales - totalReturns,
-                ExpectedCash = session.OpeningAmount + cashSales + personalAccountCashPayments - cashReturns,
+                ExpectedCash = session.OpeningAmount + cashSalesForExpectedCash + personalAccountCashPayments - cashReturns,
                 ExchangeLoss = exchanges.Sum(e => e.EstimatedLoss),
                 CashExchangeLoss = cashExchangeLoss,
                 TransferExchangeLoss = transferExchangeLoss,

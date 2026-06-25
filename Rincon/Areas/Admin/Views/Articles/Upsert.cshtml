@@ -88,9 +88,10 @@
                                 <input asp-for="Article.IsSoldByWeight"
                                        class="visually-hidden"
                                        type="checkbox"
-                                       id="isSoldByWeightSwitch" />
+                                       id="isSoldByWeightSwitch"
+                                       aria-label="Venta por kilogramo" />
 
-                                <label class="form-label d-block">Tipo de venta</label>
+                                <div class="form-label d-block">Tipo de venta</div>
                                 <div class="article-sale-mode-toggle" role="group" aria-label="Tipo de venta del artículo">
                                     <button type="button"
                                             class="article-sale-mode-option"
@@ -113,9 +114,10 @@
                                 <input asp-for="Article.UsesBatches"
                                        class="visually-hidden"
                                        type="checkbox"
-                                       id="usesBatchesSwitch" />
+                                       id="usesBatchesSwitch"
+                                       aria-label="Stock por lotes" />
 
-                                <label class="form-label d-block">Control de stock</label>
+                                <div class="form-label d-block">Control de stock</div>
                                 <div class="article-sale-mode-toggle article-stock-mode-toggle" role="group" aria-label="Control de stock del artículo">
                                     <button type="button"
                                             class="article-sale-mode-option"
@@ -195,14 +197,14 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Imagen del artículo</label>
+                                <label class="form-label" for="uploadBox">Imagen del artículo</label>
                                 <input type="file" name="files" id="uploadBox" class="form-control" accept="image/*" />
                             </div>
 
                         </div>
                        
                         <div class="mb-3">
-                            <label asp-for="Article.isActive" class="form-label"></label>
+                            <div class="form-label">Estado</div>
 
                             <div class="form-check form-switch">
                                 <input asp-for="Article.isActive"
