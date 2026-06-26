@@ -208,12 +208,14 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
+
                 query = query.Where(u =>
-                    u.fullName.Contains(searchValue) ||
-                    (u.email != null && u.email.Contains(searchValue)) ||
-                    u.dni.Contains(searchValue) ||
-                    (u.phoneNumber != null && u.phoneNumber.Contains(searchValue)) ||
-                    u.role.Contains(searchValue));
+                    EF.Functions.ILike(u.fullName, searchPattern) ||
+                    (u.email != null && EF.Functions.ILike(u.email, searchPattern)) ||
+                    EF.Functions.ILike(u.dni, searchPattern) ||
+                    (u.phoneNumber != null && EF.Functions.ILike(u.phoneNumber, searchPattern)) ||
+                    EF.Functions.ILike(u.role, searchPattern));
             }
 
             var recordsFiltered = query.Count();

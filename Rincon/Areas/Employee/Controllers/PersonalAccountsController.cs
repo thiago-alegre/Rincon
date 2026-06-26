@@ -228,10 +228,10 @@ namespace Rincon.Areas.Employee.Controllers
                 var search = $"%{term.Trim()}%";
 
                 query = query.Where(a =>
-                    EF.Functions.Like(a.FullName, search) ||
-                    EF.Functions.Like(a.DNI, search) ||
-                    (a.Phone != null && EF.Functions.Like(a.Phone, search)) ||
-                    (a.Address != null && EF.Functions.Like(a.Address, search)));
+                    EF.Functions.ILike(a.FullName, search) ||
+                    EF.Functions.ILike(a.DNI, search) ||
+                    (a.Phone != null && EF.Functions.ILike(a.Phone, search)) ||
+                    (a.Address != null && EF.Functions.ILike(a.Address, search)));
             }
 
             var accounts = query
@@ -293,11 +293,13 @@ namespace Rincon.Areas.Employee.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
+
                 query = query.Where(a =>
-                    a.fullName.Contains(searchValue) ||
-                    a.dni.Contains(searchValue) ||
-                    (a.phone != null && a.phone.Contains(searchValue)) ||
-                    (a.address != null && a.address.Contains(searchValue)));
+                    EF.Functions.ILike(a.fullName, searchPattern) ||
+                    EF.Functions.ILike(a.dni, searchPattern) ||
+                    (a.phone != null && EF.Functions.ILike(a.phone, searchPattern)) ||
+                    (a.address != null && EF.Functions.ILike(a.address, searchPattern)));
             }
 
             var recordsFiltered = query.Count();
@@ -374,13 +376,14 @@ namespace Rincon.Areas.Employee.Controllers
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
                 var search = searchValue.ToLower();
+                var searchPattern = $"%{searchValue}%";
                 var settledSearch = "saldada".Contains(search);
                 var pendingSearch = "pendiente".Contains(search);
                 var voidedSearch = "anulada".Contains(search);
 
                 query = query.Where(d =>
-                    d.ArticleName.Contains(searchValue) ||
-                    d.UnitOfMeasure.Contains(searchValue) ||
+                    EF.Functions.ILike(d.ArticleName, searchPattern) ||
+                    EF.Functions.ILike(d.UnitOfMeasure, searchPattern) ||
                     (voidedSearch && d.IsVoided) ||
                     (settledSearch && d.IsPersonalAccountSettled) ||
                     (pendingSearch && !d.IsPersonalAccountSettled && !d.IsVoided));
@@ -462,14 +465,15 @@ namespace Rincon.Areas.Employee.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
                 var matchingPaymentMethods = Enum.GetValues<PaymentMethod>()
                     .Where(p => p.ToString().Contains(searchValue, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 query = query.Where(p =>
                     matchingPaymentMethods.Contains(p.PaymentMethod) ||
-                    (p.userName != null && p.userName.Contains(searchValue)) ||
-                    (p.Notes != null && p.Notes.Contains(searchValue)));
+                    (p.userName != null && EF.Functions.ILike(p.userName, searchPattern)) ||
+                    (p.Notes != null && EF.Functions.ILike(p.Notes, searchPattern)));
             }
 
             var recordsFiltered = query.Count();

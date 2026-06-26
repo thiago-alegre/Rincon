@@ -249,11 +249,13 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
+
                 query = query.Where(a =>
-                    a.Name.Contains(searchValue) ||
-                    a.Code.Contains(searchValue) ||
-                    (a.Description != null && a.Description.Contains(searchValue)) ||
-                    (a.Category != null && a.Category.Name.Contains(searchValue)));
+                    EF.Functions.ILike(a.Name, searchPattern) ||
+                    EF.Functions.ILike(a.Code, searchPattern) ||
+                    (a.Description != null && EF.Functions.ILike(a.Description, searchPattern)) ||
+                    (a.Category != null && EF.Functions.ILike(a.Category.Name, searchPattern)));
             }
 
             var recordsFiltered = query.Count();

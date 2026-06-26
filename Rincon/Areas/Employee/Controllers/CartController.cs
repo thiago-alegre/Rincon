@@ -567,9 +567,9 @@ namespace Rincon.Areas.Employee.Controllers
                 .Include(a => a.Category)
                 .Where(a => a.isActive == true)
                 .Where(a =>
-                    EF.Functions.Like(a.Name, likeSearch) ||
-                    EF.Functions.Like(a.Code, likeSearch) ||
-                    (a.Category != null && EF.Functions.Like(a.Category.Name, likeSearch)))
+                    EF.Functions.ILike(a.Name, likeSearch) ||
+                    EF.Functions.ILike(a.Code, likeSearch) ||
+                    (a.Category != null && EF.Functions.ILike(a.Category.Name, likeSearch)))
                 .OrderBy(a => a.Name)
                 .Take(25)
                 .ToList();

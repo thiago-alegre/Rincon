@@ -175,15 +175,16 @@ namespace Rincon.Areas.Employee.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
                 var isOpenSearch = "abierta".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
                 var isClosedSearch = "cerrada".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
 
                 query = query.Where(s =>
                     (s.User != null &&
-                        ((s.User.FullName != null && s.User.FullName.Contains(searchValue)) ||
-                         (s.User.Email != null && s.User.Email.Contains(searchValue)))) ||
+                        ((s.User.FullName != null && EF.Functions.ILike(s.User.FullName, searchPattern)) ||
+                         (s.User.Email != null && EF.Functions.ILike(s.User.Email, searchPattern)))) ||
                     s.Id.ToString().Contains(searchValue) ||
-                    (s.Notes != null && s.Notes.Contains(searchValue)) ||
+                    (s.Notes != null && EF.Functions.ILike(s.Notes, searchPattern)) ||
                     (isOpenSearch && s.ClosedAt == null) ||
                     (isClosedSearch && s.ClosedAt != null));
             }

@@ -61,10 +61,12 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
+
                 query = query.Where(x =>
-                    x.Article.Name.Contains(searchValue) ||
-                    x.Article.Code.Contains(searchValue) ||
-                    x.CategoryName.Contains(searchValue));
+                    EF.Functions.ILike(x.Article.Name, searchPattern) ||
+                    EF.Functions.ILike(x.Article.Code, searchPattern) ||
+                    EF.Functions.ILike(x.CategoryName, searchPattern));
             }
 
             var recordsFiltered = query.Count();

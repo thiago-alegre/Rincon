@@ -13,7 +13,6 @@ namespace Rincon.DataAccess.Migrations
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -1219,5 +1218,3 @@ namespace Rincon.DataAccess.Migrations
         }
     }
 }
-
-

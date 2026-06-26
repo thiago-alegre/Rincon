@@ -367,6 +367,7 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
+                var searchPattern = $"%{searchValue}%";
                 var matchingPaymentMethods = Enum.GetValues<PaymentMethod>()
                     .Where(p => p.ToString().Contains(searchValue, StringComparison.OrdinalIgnoreCase))
                     .ToList();
@@ -376,8 +377,8 @@ namespace Rincon.Areas.Admin.Controllers
                     (hasTotalSearch && s.Total == totalSearch) ||
                     matchingPaymentMethods.Contains(s.PaymentMethod) ||
                     (s.User != null &&
-                        ((s.User.FullName != null && s.User.FullName.Contains(searchValue)) ||
-                         (s.User.Email != null && s.User.Email.Contains(searchValue)))));
+                        ((s.User.FullName != null && EF.Functions.ILike(s.User.FullName, searchPattern)) ||
+                         (s.User.Email != null && EF.Functions.ILike(s.User.Email, searchPattern)))));
             }
 
             var recordsFiltered = query.Count();

@@ -88,7 +88,8 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
-                query = query.Where(c => c.Name.Contains(searchValue));
+                var searchPattern = $"%{searchValue}%";
+                query = query.Where(c => EF.Functions.ILike(c.Name, searchPattern));
             }
 
             var recordsFiltered = query.Count();
@@ -128,7 +129,8 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(term))
             {
-                categories = categories.Where(c => c.Name.Contains(term));
+                var searchPattern = $"%{term.Trim()}%";
+                categories = categories.Where(c => EF.Functions.ILike(c.Name, searchPattern));
             }
 
             var pagedCategories = categories
