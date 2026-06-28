@@ -47,8 +47,14 @@
                     @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
                     {
                         Title = "Detalle de venta",
-                        Description = "Esta pantalla muestra toda la información de una venta concreta.",
-                        Items = new[] { "Revisá total, medio de pago, usuario y caja asociada.", "La tabla detalla productos vendidos, cantidades, precios y subtotales.", "Si la venta fue a cuenta personal, también se muestra la cuenta vinculada." }
+                        Description = "Esta pantalla muestra toda la información de una venta concreta y permite resolver errores o reclamos.",
+                        Items = new[] {
+                            "Revisá total, medio de pago, usuario y caja asociada.",
+                            "La tabla detalla productos vendidos, cantidades, precios y subtotales.",
+                            "Si la venta fue a cuenta personal, también se muestra la cuenta vinculada.",
+                            "Anular venta se usa cuando la operación fue cargada por error: se anula la venta completa, se repone el stock y se descuenta el importe de caja o cuenta personal.",
+                            "Recambio se usa cuando el cliente reclama un producto fallado: se entrega el mismo producto, se descuenta stock nuevamente y no se suma dinero a caja."
+                        }
                     })
                 </div>
                 <p class="admin-subtitle mb-0">
@@ -243,7 +249,7 @@
 
                     <div class="modal-body screen-help-body">
                         <p class="screen-help-description">
-                            Se anulará la venta completa, el stock será repuesto y el movimiento impactará en la caja abierta del usuario actual.
+                            La anulación corresponde cuando una venta fue registrada por error. Se anulará la venta completa, se repondrá el stock vendido y el importe se descontará de la caja o de la cuenta personal asociada.
                         </p>
 
                         <label for="voidReason" class="form-label fw-semibold">Motivo</label>
@@ -289,7 +295,7 @@
                             <span class="d-block text-muted">Cantidad original: <span id="exchangeOriginalQuantity">-</span></span>
                         </p>
                         <p class="small text-muted">
-                            El recambio siempre repone el mismo producto vendido. Este movimiento no suma dinero a caja; descuenta otra unidad o peso del stock y registra la pérdida estimada por la reposición.
+                            El recambio corresponde cuando el cliente trae un producto fallado y se le entrega otro igual. No anula la venta ni suma dinero a caja; descuenta otra unidad o peso del stock y registra la pérdida estimada por la reposición.
                         </p>
 
                         <div class="mb-3">

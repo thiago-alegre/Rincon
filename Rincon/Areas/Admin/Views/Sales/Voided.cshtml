@@ -11,17 +11,24 @@
                 <i class="fa fa-ban"></i>
             </div>
             <div>
-                <span class="admin-eyebrow">Administraci&oacute;n</span>
+                <span class="admin-eyebrow">Administración</span>
                 <div class="d-flex align-items-center gap-2">
                     <h1 class="admin-title h3 mb-1">Ventas anuladas</h1>
                     @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
                     {
                         Title = "Ventas anuladas",
-                        Description = "Consult&aacute; ventas que fueron anuladas y la fecha en que se registr&oacute; la anulaci&oacute;n.",
-                        Items = new[] { "Filtr&aacute; por usuario y fecha para revisar un turno puntual.", "La fecha de venta muestra cu&aacute;ndo se registr&oacute; la operaci&oacute;n original.", "La fecha de anulaci&oacute;n muestra cu&aacute;ndo se marc&oacute; la venta como anulada." }
+                        Description = "Consultá ventas anuladas, recambios y la fecha en que se registró cada movimiento.",
+                        Items = new[] {
+                            "Las ventas se anulan desde el detalle de venta, usando Ver detalle en el historial de ventas.",
+                            "La anulación se usa cuando una venta fue cargada por error: repone stock y descuenta el importe de caja o cuenta personal.",
+                            "El recambio se registra desde el detalle de venta sobre el producto reclamado: entrega el mismo producto, descuenta stock y no suma dinero a caja.",
+                            "Filtrá por usuario y fecha para revisar un turno puntual.",
+                            "La fecha de venta muestra cuándo se registró la operación original.",
+                            "La fecha de movimiento muestra cuándo se anuló la venta o cuándo se registró el recambio."
+                        }
                     })
                 </div>
-                <p class="admin-subtitle mb-0">Las ventas anuladas no reponen stock. Los recambios descuentan el producto entregado sin sumar caja.</p>
+                <p class="admin-subtitle mb-0">Las anulaciones reponen stock por venta errónea. Los recambios descuentan el producto entregado sin sumar caja.</p>
             </div>
         </div>
 

@@ -9,8 +9,13 @@ using Rincon.Utilities;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("ConexionPostgres")
-    ?? throw new InvalidOperationException("Connection string 'ConexionPostgres' not found.");
+var connectionString = builder.Configuration.GetConnectionString("ConexionPostgres");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string 'ConexionPostgres' is not configured. Set it with user-secrets locally or with the environment variable 'ConnectionStrings__ConexionPostgres' in production.");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
