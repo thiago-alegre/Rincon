@@ -482,3 +482,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Rincon local/runtime artifacts
+Rincon/DataProtectionKeys/
+publish/
+artifacts/

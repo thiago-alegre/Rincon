@@ -24,6 +24,12 @@ builder.Services.AddScoped<IWorkContainer, WorkContainer>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
+var dataProtectionBuilder = Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions
+    .PersistKeysToFileSystem(builder.Services.AddDataProtection(), new DirectoryInfo(dataProtectionKeysPath));
+Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions
+    .SetApplicationName(dataProtectionBuilder, "Rincon");
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;

@@ -459,8 +459,8 @@ namespace Rincon.Areas.Admin.Controllers
         private string SaveArticleImage(IFormFile file)
         {
             string fileName = Guid.NewGuid().ToString();
-            string extension = Path.GetExtension(file.FileName);
-            string uploads = Path.Combine(_webHostEnvironment.WebRootPath, @"imagenes\articles");
+            string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            string uploads = Path.Combine(_webHostEnvironment.WebRootPath, "imagenes", "articles");
 
             if (!Directory.Exists(uploads))
             {
@@ -472,12 +472,16 @@ namespace Rincon.Areas.Admin.Controllers
                 file.CopyTo(fileStream);
             }
 
-            return @"\imagenes\articles\" + fileName + extension;
+            return $"/imagenes/articles/{fileName}{extension}";
         }
 
         private void DeleteArticleImage(string imageUrl)
         {
-            string imagePath = Path.Combine(_webHostEnvironment.WebRootPath, imageUrl.TrimStart('\\', '/'));
+            string relativeImagePath = imageUrl
+                .TrimStart('\\', '/')
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+            string imagePath = Path.Combine(_webHostEnvironment.WebRootPath, relativeImagePath);
 
             if (System.IO.File.Exists(imagePath))
             {

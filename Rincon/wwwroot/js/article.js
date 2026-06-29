@@ -21,9 +21,11 @@ function loadDataTable() {
                 orderable: false,
                 render: function (data) {
                     if (data) {
+                        const imageUrl = data.replaceAll("\\", "/");
+
                         return `
                             <div class="text-center">
-                                <img src="${data}" class="product-img-sm" alt="Imagen del artículo" />
+                                <img src="${imageUrl}" class="product-img-sm" alt="Imagen del artículo" />
                             </div>
                         `;
                     }

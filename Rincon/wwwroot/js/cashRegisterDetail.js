@@ -40,18 +40,24 @@ $(document).ready(function () {
                 data: null,
                 render: function (data) {
                     const code = data.articleCode ? `<div class="small text-muted">Código: ${data.articleCode}</div>` : '';
-                    return `<div class="fw-semibold">${data.articleName}</div>${code}`;
+                    const articleCode = data.articleCode ? `<div class="small text-muted">Código: ${data.articleCode}</div>` : '';
+                    return `<div class="fw-semibold">${data.articleName}</div>${articleCode}`;
                 }
             },
-            { data: 'quantity' },
+            {
+                data: 'quantity',
+                className: 'text-center text-nowrap'
+            },
             {
                 data: 'unitPrice',
+                className: 'text-end text-nowrap',
                 render: function (data) {
                     return `$ ${data}`;
                 }
             },
             {
                 data: 'subtotal',
+                className: 'text-end text-nowrap',
                 render: function (data, type, row) {
                     const className = row.subtotalValue < 0 || row.movementStatus === 'Recambio'
                         ? 'text-danger'
@@ -81,6 +87,11 @@ $(document).ready(function () {
                     return `<span class="status-badge ${className}">${data}</span>`;
                 }
             }
+        ],
+        columnDefs: [
+            { targets: 5, width: '72px' },
+            { targets: 6, width: '120px' },
+            { targets: 7, width: '130px' }
         ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
