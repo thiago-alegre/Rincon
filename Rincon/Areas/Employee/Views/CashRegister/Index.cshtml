@@ -57,93 +57,83 @@
     }
     else
     {
-        <div class="row g-3 mb-4 align-items-stretch">
+        <div class="cash-overview mb-4">
+            <div class="cash-summary-card cash-summary-card-primary">
+                <span>Total vendido</span>
+                <strong>$ @Model.CurrentSummary.TotalSales.ToString("N2")</strong>
+            </div>
+            <div class="cash-summary-card">
+                <span>Efectivo esperado</span>
+                <strong>$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</strong>
+            </div>
+            <div class="cash-summary-card">
+                <span>Ventas del turno</span>
+                <strong>@Model.CurrentSummary.SalesCount</strong>
+            </div>
+            <div class="cash-summary-card">
+                <span>Monto inicial</span>
+                <strong>$ @Model.OpenSession.OpeningAmount.ToString("N2")</strong>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
             <div class="col-xl-8">
-                <div class="row g-3 h-100">
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Monto inicial</div>
-                            <div class="detail-metric-value">$ @Model.OpenSession.OpeningAmount.ToString("N2")</div>
-                        </div>
+                <div class="content-card h-100">
+                    <div class="mb-3">
+                        <span class="section-kicker">Desglose</span>
+                        <h2 class="section-title mb-0">Movimientos del turno</h2>
                     </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Efectivo vendido</div>
-                            <div class="detail-metric-value">$ @Model.CurrentSummary.CashSales.ToString("N2")</div>
+
+                    <div class="cash-breakdown-grid">
+                        <div class="cash-breakdown-item">
+                            <span>Efectivo vendido</span>
+                            <strong>$ @Model.CurrentSummary.CashSales.ToString("N2")</strong>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Transferencia vendida</div>
-                            <div class="detail-metric-value">$ @Model.CurrentSummary.TransferSales.ToString("N2")</div>
+                        <div class="cash-breakdown-item">
+                            <span>Transferencia vendida</span>
+                            <strong>$ @Model.CurrentSummary.TransferSales.ToString("N2")</strong>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Cuenta personal</div>
-                            <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountSales.ToString("N2")</div>
+                        <div class="cash-breakdown-item">
+                            <span>Cuenta personal</span>
+                            <strong>$ @Model.CurrentSummary.PersonalAccountSales.ToString("N2")</strong>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Cobros cuenta personal</div>
-                            <div class="detail-metric-value">$ @Model.CurrentSummary.PersonalAccountCashPayments.ToString("N2")</div>
-                            <div class="small text-muted">Transferencia: $ @Model.CurrentSummary.PersonalAccountTransferPayments.ToString("N2")</div>
+                        <div class="cash-breakdown-item">
+                            <span>Cobros cuenta personal</span>
+                            <strong>$ @Model.CurrentSummary.PersonalAccountCashPayments.ToString("N2")</strong>
+                            <small>Transferencia: $ @Model.CurrentSummary.PersonalAccountTransferPayments.ToString("N2")</small>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Anulaciones</div>
-                            <div class="detail-metric-value text-danger">-$ @Model.CurrentSummary.TotalReturns.ToString("N2")</div>
-                            <div class="small text-muted">Efectivo: -$ @Model.CurrentSummary.CashReturns.ToString("N2")</div>
+                        <div class="cash-breakdown-item">
+                            <span>Anulaciones</span>
+                            <strong class="text-danger">-$ @Model.CurrentSummary.TotalReturns.ToString("N2")</strong>
+                            <small>@Model.CurrentSummary.ReturnsCount movimientos</small>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="detail-metric-card">
-                            <div class="detail-metric-label">Ventas del turno</div>
-                            <div class="detail-metric-value">@Model.CurrentSummary.SalesCount</div>
+                        <div class="cash-breakdown-item">
+                            <span>Recambios</span>
+                            <strong class="text-danger">-$ @Model.CurrentSummary.ExchangeLoss.ToString("N2")</strong>
+                            <small>@Model.CurrentSummary.ExchangesCount movimientos</small>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-4">
-                <div class="row g-3 h-100">
-                    <div class="col-md-6 col-xl-12">
-                        <div class="detail-metric-card cash-priority-card">
-                            <div class="detail-metric-label">Total vendido</div>
-                            <div class="detail-metric-value success">$ @Model.CurrentSummary.TotalSales.ToString("N2")</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-xl-12">
-                        <div class="detail-metric-card cash-priority-card">
-                            <div class="detail-metric-label">Efectivo esperado</div>
-                            <div class="detail-metric-value success">$ @Model.CurrentSummary.ExpectedCash.ToString("N2")</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="content-card mb-4">
-            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                <div>
+                <div class="content-card h-100">
                     <span class="section-kicker">Caja abierta</span>
                     <h2 class="section-title mb-1">@GetUserName(Model.OpenSession)</h2>
-                    <p class="text-muted mb-0">Abierta el @Model.OpenSession.OpenedAt.ToString("dd/MM/yyyy HH:mm")</p>
-                </div>
+                    <p class="text-muted mb-3">Abierta el @Model.OpenSession.OpenedAt.ToString("dd/MM/yyyy HH:mm")</p>
 
-                <form asp-area="Employee" asp-controller="CashRegister" asp-action="Close" method="post" class="cash-close-form">
-                    <input type="hidden" name="Id" value="@Model.OpenSession.Id" />
-                    <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input name="CountedCashAmountText" class="form-control" placeholder="Efectivo contado" autocomplete="off" />
-                    </div>
-                    <input name="Notes" class="form-control" placeholder="Observación opcional" maxlength="500" />
-                    <button type="submit" class="btn btn-danger btn-modern">
-                        <i class="bi bi-lock me-1"></i> Cerrar caja
-                    </button>
-                </form>
+                    <form asp-area="Employee" asp-controller="CashRegister" asp-action="Close" method="post" class="cash-close-form cash-close-form-stacked">
+                        <input type="hidden" name="Id" value="@Model.OpenSession.Id" />
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input name="CountedCashAmountText" class="form-control" placeholder="Efectivo contado" autocomplete="off" />
+                        </div>
+                        <input name="Notes" class="form-control" placeholder="Observación opcional" maxlength="500" />
+                        <button type="submit" class="btn btn-danger btn-modern w-100">
+                            <i class="bi bi-lock me-1"></i> Cerrar caja
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     }

@@ -25,15 +25,15 @@
                     @await Html.PartialAsync("~/Views/Shared/_ScreenHelp.cshtml", new Rincon.Models.ViewModels.ScreenHelpVM
                     {
                         Title = "Detalle de caja",
-                        Description = "Consultá las ventas y productos registrados durante esta caja.",
-                        Items = new[] { "La parte superior resume los importes del turno igual que la pantalla de caja.", "Cada fila representa un producto vendido, anulado o recambiado dentro de una venta.", "Usá el buscador para ubicar venta, producto, medio de pago o cuenta personal." }
+                        Description = "Consulta las ventas y productos registrados durante esta caja.",
+                        Items = new[] { "El resumen superior muestra los importes principales y la cantidad de ventas del turno.", "El desglose separa ventas, cobros, anulaciones y recambios.", "La tabla inferior permite ubicar productos, medios de pago y cuentas personales." }
                     })
                 </div>
                 <p class="admin-subtitle mb-0">
-                    @userName · Apertura @Model.OpenedAt.ToString("dd/MM/yyyy HH:mm")
+                    @userName - Apertura @Model.OpenedAt.ToString("dd/MM/yyyy HH:mm")
                     @if (Model.ClosedAt.HasValue)
                     {
-                        <span> · Cierre @Model.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        <span> - Cierre @Model.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
                     }
                 </p>
             </div>
@@ -44,117 +44,76 @@
         </a>
     </div>
 
-    <div class="row g-3 mb-4 align-items-stretch">
-        <div class="col-xl-8">
-            <div class="row g-3 h-100">
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Monto inicial</div>
-                        <div class="detail-metric-value">$ @Model.OpeningAmount.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Efectivo vendido</div>
-                        <div class="detail-metric-value">$ @summary.CashSales.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Transferencia vendida</div>
-                        <div class="detail-metric-value">$ @summary.TransferSales.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Cuenta personal</div>
-                        <div class="detail-metric-value">$ @summary.PersonalAccountSales.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Cobros cuenta personal</div>
-                        <div class="detail-metric-value">$ @summary.PersonalAccountCashPayments.ToString("N2")</div>
-                        <div class="small text-muted">Transferencia: $ @summary.PersonalAccountTransferPayments.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Anulaciones</div>
-                        <div class="detail-metric-value text-danger">-$ @summary.TotalReturns.ToString("N2")</div>
-                        <div class="small text-muted">@summary.ReturnsCount movimientos</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Recambios</div>
-                        <div class="detail-metric-value text-danger">-$ @summary.ExchangeLoss.ToString("N2")</div>
-                        <div class="small text-muted">@summary.ExchangesCount movimientos</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="detail-metric-card">
-                        <div class="detail-metric-label">Ventas del turno</div>
-                        <div class="detail-metric-value">@summary.SalesCount</div>
-                    </div>
-                </div>
-            </div>
+    <div class="cash-overview cash-overview-detail mb-4">
+        <div class="cash-summary-card cash-summary-card-primary">
+            <span>Total vendido</span>
+            <strong>$ @summary.TotalSales.ToString("N2")</strong>
         </div>
-
-        <div class="col-xl-4">
-            <div class="row g-3 h-100">
-                <div class="col-md-6 col-xl-12">
-                    <div class="detail-metric-card cash-priority-card">
-                        <div class="detail-metric-label">Total vendido</div>
-                        <div class="detail-metric-value success">$ @summary.TotalSales.ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-12">
-                    <div class="detail-metric-card cash-priority-card">
-                        <div class="detail-metric-label">Efectivo esperado</div>
-                        <div class="detail-metric-value success">$ @summary.ExpectedCash.ToString("N2")</div>
-                    </div>
-                </div>
-                @if (Model.ClosedAt.HasValue)
-                {
-                    <div class="col-md-6 col-xl-12">
-                        <div class="detail-metric-card cash-priority-card">
-                            <div class="detail-metric-label">Efectivo contado</div>
-                            <div class="detail-metric-value">$ @countedCash.ToString("N2")</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-xl-12">
-                        <div class="detail-metric-card cash-priority-card">
-                            <div class="detail-metric-label">Diferencia</div>
-                            <div class="detail-metric-value @differenceClass">$ @difference.ToString("N2")</div>
-                        </div>
-                    </div>
-                }
-            </div>
+        <div class="cash-summary-card">
+            <span>Ventas del turno</span>
+            <strong>@summary.SalesCount</strong>
+        </div>
+        <div class="cash-summary-card">
+            <span>Efectivo esperado</span>
+            <strong>$ @summary.ExpectedCash.ToString("N2")</strong>
+        </div>
+        <div class="cash-summary-card">
+            <span>Efectivo contado</span>
+            <strong>$ @countedCash.ToString("N2")</strong>
+        </div>
+        <div class="cash-summary-card">
+            <span>Diferencia</span>
+            <strong class="@differenceClass">$ @difference.ToString("N2")</strong>
         </div>
     </div>
 
     <div class="content-card mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <span class="section-kicker">@(Model.IsOpen ? "Caja abierta" : "Caja cerrada")</span>
-                <h2 class="section-title mb-1">@userName</h2>
-                <p class="text-muted mb-0">
-                    Abierta el @Model.OpenedAt.ToString("dd/MM/yyyy HH:mm")
-                    @if (Model.ClosedAt.HasValue)
-                    {
-                        <span> · Cerrada el @Model.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                    }
-                </p>
-                @if (!string.IsNullOrWhiteSpace(Model.Notes))
-                {
-                    <p class="text-muted mb-0 mt-2">Observación: @Model.Notes</p>
-                }
-            </div>
+        <div class="mb-3">
+            <span class="section-kicker">Desglose</span>
+            <h2 class="section-title mb-0">Movimientos del turno</h2>
+        </div>
 
-            <span class="status-badge @(Model.IsOpen ? "status-active" : "expiration-danger")">
-                @(Model.IsOpen ? "Abierta" : "Cerrada")
-            </span>
+        <div class="cash-breakdown-grid cash-breakdown-grid-detail">
+            <div class="cash-breakdown-item">
+                <span>Monto inicial</span>
+                <strong>$ @Model.OpeningAmount.ToString("N2")</strong>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Efectivo vendido</span>
+                <strong>$ @summary.CashSales.ToString("N2")</strong>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Transferencia vendida</span>
+                <strong>$ @summary.TransferSales.ToString("N2")</strong>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Cuenta personal</span>
+                <strong>$ @summary.PersonalAccountSales.ToString("N2")</strong>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Cobros cuenta personal</span>
+                <strong>$ @summary.PersonalAccountCashPayments.ToString("N2")</strong>
+                <small>Transferencia: $ @summary.PersonalAccountTransferPayments.ToString("N2")</small>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Anulaciones</span>
+                <strong class="text-danger">-$ @summary.TotalReturns.ToString("N2")</strong>
+                <small>@summary.ReturnsCount movimientos</small>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Recambios</span>
+                <strong class="text-danger">-$ @summary.ExchangeLoss.ToString("N2")</strong>
+                <small>@summary.ExchangesCount movimientos</small>
+            </div>
+            <div class="cash-breakdown-item">
+                <span>Estado</span>
+                <strong>
+                    <span class="status-badge @(Model.IsOpen ? "status-active" : "expiration-danger")">
+                        @(Model.IsOpen ? "ABIERTA" : "CERRADA")
+                    </span>
+                </strong>
+                <small>@(Model.IsOpen ? "Caja en curso" : "Caja finalizada")</small>
+            </div>
         </div>
     </div>
 
