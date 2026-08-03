@@ -82,6 +82,13 @@
             <div class="detail-metric-card">
                 <div class="detail-metric-label">Total</div>
                 <div class="detail-metric-value success">$ @Model.Total.ToString("N2")</div>
+                @if (Model.PaymentMethod == Rincon.Utilities.Enums.PaymentMethod.Combinado || Model.CashAmount > 0 || Model.TransferAmount > 0)
+                {
+                    <div class="text-muted small mt-1">
+                        Transferencia: $ @Model.TransferAmount.ToString("N2")<br />
+                        Efectivo: $ @Model.CashAmount.ToString("N2")
+                    </div>
+                }
             </div>
         </div>
 

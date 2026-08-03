@@ -253,7 +253,13 @@ namespace Rincon.Areas.Employee.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ConfirmSale(PaymentMethod paymentMethod, string? amountReceivedText, int? personalAccountId)
+        public IActionResult ConfirmSale(
+            PaymentMethod paymentMethod,
+            string? amountReceivedText,
+            int? personalAccountId,
+            bool isCombinedPayment = false,
+            string? combinedCashAmountText = null,
+            string? combinedTransferAmountText = null)
         {
             var cart = GetCart();
 
@@ -318,8 +324,44 @@ namespace Rincon.Areas.Employee.Controllers
 
             decimal? amountReceived = null;
             decimal? change = null;
+            decimal cashAmount = 0;
+            decimal transferAmount = 0;
 
-            if (paymentMethod == PaymentMethod.CuentaPersonal)
+            if (isCombinedPayment)
+            {
+                paymentMethod = PaymentMethod.Combinado;
+                personalAccountId = null;
+
+                if (!TryParseDecimal(combinedTransferAmountText, out transferAmount) || transferAmount < 0)
+                {
+                    TempData["error"] = "Ingrese un monto válido para transferencia";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (!TryParseDecimal(combinedCashAmountText, out var cashReceived) || cashReceived < 0)
+                {
+                    TempData["error"] = "Ingrese un monto válido para efectivo";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (transferAmount > total)
+                {
+                    TempData["error"] = "El monto transferido no puede superar el total de la venta";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                cashAmount = total - transferAmount;
+
+                if (cashReceived < cashAmount)
+                {
+                    TempData["error"] = $"El efectivo no alcanza para cubrir el restante. Faltan $ {(cashAmount - cashReceived):N2}";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                amountReceived = cashReceived;
+                change = cashReceived - cashAmount;
+            }
+            else if (paymentMethod == PaymentMethod.CuentaPersonal)
             {
                 if (!personalAccountId.HasValue || personalAccountId.Value <= 0)
                 {
@@ -336,13 +378,19 @@ namespace Rincon.Areas.Employee.Controllers
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(amountReceivedText))
+            if (!isCombinedPayment && !string.IsNullOrWhiteSpace(amountReceivedText))
             {
                 if (TryParseDecimal(amountReceivedText, out decimal parsedAmountReceived))
                 {
                     amountReceived = parsedAmountReceived;
                     change = parsedAmountReceived - total;
                 }
+            }
+
+            if (!isCombinedPayment)
+            {
+                cashAmount = paymentMethod == PaymentMethod.Efectivo ? total : 0;
+                transferAmount = paymentMethod == PaymentMethod.Transferencia ? total : 0;
             }
 
             var claimsIdentity = User.Identity as ClaimsIdentity;
@@ -368,6 +416,8 @@ namespace Rincon.Areas.Employee.Controllers
                     PaymentMethod = paymentMethod,
                     AmountReceived = amountReceived,
                     Change = change,
+                    CashAmount = cashAmount,
+                    TransferAmount = transferAmount,
                     UserId = userId,
                     CashRegisterSessionId = openCashRegister.Id,
                     PersonalAccountId = paymentMethod == PaymentMethod.CuentaPersonal ? personalAccountId : null,

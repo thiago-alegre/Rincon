@@ -70,7 +70,8 @@ using (var scope = app.Services.CreateScope())
     string[] roles =
     {
         SD.Role_Admin,
-        SD.Role_Employee
+        SD.Role_Employee,
+        SD.Role_God
     };
 
     foreach (var role in roles)

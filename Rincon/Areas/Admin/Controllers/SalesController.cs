@@ -375,6 +375,8 @@ namespace Rincon.Areas.Admin.Controllers
 
                 query = query.Where(s =>
                     (hasTotalSearch && s.Total == totalSearch) ||
+                    (hasTotalSearch && s.CashAmount == totalSearch) ||
+                    (hasTotalSearch && s.TransferAmount == totalSearch) ||
                     matchingPaymentMethods.Contains(s.PaymentMethod) ||
                     (s.User != null &&
                         ((s.User.FullName != null && EF.Functions.ILike(s.User.FullName, searchPattern)) ||
@@ -405,6 +407,7 @@ namespace Rincon.Areas.Admin.Controllers
                     date = s.Date.ToString("dd/MM/yyyy HH:mm"),
                     total = s.Total.ToString("N2"),
                     paymentMethod = s.PaymentMethod.ToString(),
+                    paymentBreakdown = GetPaymentBreakdown(s),
                     user = s.User != null
                         ? (!string.IsNullOrWhiteSpace(s.User.FullName) ? s.User.FullName : s.User.Email)
                         : "Sin usuario",
@@ -443,6 +446,8 @@ namespace Rincon.Areas.Admin.Controllers
                     MovementDate = s.VoidedAt ?? s.Date,
                     PaymentMethod = s.PaymentMethod.ToString(),
                     Total = s.Total,
+                    CashAmount = s.CashAmount,
+                    TransferAmount = s.TransferAmount,
                     UserId = s.UserId,
                     User = s.User != null
                         ? (!string.IsNullOrWhiteSpace(s.User.FullName) ? s.User.FullName : s.User.Email ?? "Sin usuario")
@@ -532,6 +537,7 @@ namespace Rincon.Areas.Admin.Controllers
                     movementDate = r.MovementDate.ToString("dd/MM/yyyy HH:mm"),
                     total = r.Total.ToString("N2"),
                     paymentMethod = r.PaymentMethod,
+                    paymentBreakdown = GetPaymentBreakdown(r.CashAmount, r.TransferAmount),
                     user = r.User,
                     status = r.Status,
                     statusClass = r.StatusClass,
@@ -550,6 +556,21 @@ namespace Rincon.Areas.Admin.Controllers
         private int GetDataTablesInt(string key, int defaultValue = 0)
         {
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private static string GetPaymentBreakdown(Sale sale)
+        {
+            return GetPaymentBreakdown(sale.CashAmount, sale.TransferAmount);
+        }
+
+        private static string GetPaymentBreakdown(decimal cashAmount, decimal transferAmount)
+        {
+            if (cashAmount <= 0 && transferAmount <= 0)
+            {
+                return string.Empty;
+            }
+
+            return $"Efectivo: $ {cashAmount:N2}<br>Transferencia: $ {transferAmount:N2}";
         }
 
         private string? GetCurrentUserId()
@@ -703,6 +724,8 @@ namespace Rincon.Areas.Admin.Controllers
             public DateTime MovementDate { get; set; }
             public string PaymentMethod { get; set; } = string.Empty;
             public decimal Total { get; set; }
+            public decimal CashAmount { get; set; }
+            public decimal TransferAmount { get; set; }
             public string? UserId { get; set; }
             public string User { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;

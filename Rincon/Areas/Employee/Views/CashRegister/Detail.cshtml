@@ -9,7 +9,11 @@
         : "Sin usuario";
     var countedCash = Model.CountedCashAmount ?? 0;
     var difference = Model.Difference ?? countedCash - summary.ExpectedCash;
-    var differenceClass = difference == 0 ? "success" : "text-danger";
+    var differenceClass = difference > 0
+        ? "text-success"
+        : difference < 0
+            ? "text-danger"
+            : "";
 }
 
 <div class="admin-page py-4">

@@ -17,8 +17,12 @@ $(document).ready(function () {
             { data: 'paymentMethod' },
             {
                 data: 'total',
-                render: function (data) {
-                    return '$ ' + data;
+                render: function (data, type, row) {
+                    const breakdown = row.paymentBreakdown
+                        ? `<div class="text-muted small mt-1">${row.paymentBreakdown}</div>`
+                        : '';
+
+                    return `<div class="fw-semibold">$ ${data}</div>${breakdown}`;
                 }
             },
             { data: 'user' },

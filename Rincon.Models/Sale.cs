@@ -25,6 +25,12 @@ namespace Rincon.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal? Change { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal CashAmount { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TransferAmount { get; set; } = 0;
+
         public string? UserId { get; set; }
 
         [ForeignKey("UserId")]

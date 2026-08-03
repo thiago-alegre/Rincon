@@ -441,8 +441,10 @@ namespace Rincon.Areas.Employee.Controllers
                 .Where(s => !s.IsVoided)
                 .ToList();
 
-            var returns = _workContainer.SaleReturn
-                .GetAll(r => r.CashRegisterSessionId == session.Id)
+            var returns = _db.SaleReturns
+                .AsNoTracking()
+                .Include(r => r.Sale)
+                .Where(r => r.CashRegisterSessionId == session.Id)
                 .ToList();
 
             var accountPayments = _workContainer.PersonalAccountPayment
@@ -456,12 +458,10 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList();
 
             var cashSales = sales
-                .Where(s => s.PaymentMethod == PaymentMethod.Efectivo)
-                .Sum(s => s.Total);
+                .Sum(GetCashSaleAmount);
 
             var transferSales = sales
-                .Where(s => s.PaymentMethod == PaymentMethod.Transferencia)
-                .Sum(s => s.Total);
+                .Sum(GetTransferSaleAmount);
 
             var personalAccountSales = sales
                 .Where(s => s.PaymentMethod == PaymentMethod.CuentaPersonal)
@@ -476,23 +476,21 @@ namespace Rincon.Areas.Employee.Controllers
                 .Sum(p => p.Amount);
 
             var cashReturns = returns
-                .Where(r => r.PaymentMethod == PaymentMethod.Efectivo)
-                .Sum(r => r.Total);
+                .Sum(GetCashReturnAmount);
 
             var transferReturns = returns
-                .Where(r => r.PaymentMethod == PaymentMethod.Transferencia)
-                .Sum(r => r.Total);
+                .Sum(GetTransferReturnAmount);
 
             var personalAccountReturns = returns
                 .Where(r => r.PaymentMethod == PaymentMethod.CuentaPersonal)
                 .Sum(r => r.Total);
 
             var cashExchangeLoss = exchanges
-                .Where(e => e.Sale != null && e.Sale.PaymentMethod == PaymentMethod.Efectivo)
+                .Where(e => e.Sale != null && GetCashSaleAmount(e.Sale) > 0)
                 .Sum(e => e.EstimatedLoss);
 
             var transferExchangeLoss = exchanges
-                .Where(e => e.Sale != null && e.Sale.PaymentMethod == PaymentMethod.Transferencia)
+                .Where(e => e.Sale != null && GetTransferSaleAmount(e.Sale) > 0)
                 .Sum(e => e.EstimatedLoss);
 
             var personalAccountExchangeLoss = exchanges
@@ -502,8 +500,7 @@ namespace Rincon.Areas.Employee.Controllers
             var totalSales = sales.Sum(s => s.Total);
             var totalReturns = returns.Sum(r => r.Total);
             var cashSalesForExpectedCash = allSales
-                .Where(s => s.PaymentMethod == PaymentMethod.Efectivo)
-                .Sum(s => s.Total);
+                .Sum(GetCashSaleAmount);
 
             return new CashRegisterSummaryVM
             {
@@ -550,6 +547,40 @@ namespace Rincon.Areas.Employee.Controllers
         private int GetDataTablesInt(string key, int defaultValue = 0)
         {
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private static decimal GetCashSaleAmount(Sale sale)
+        {
+            return sale.CashAmount > 0 || sale.TransferAmount > 0
+                ? sale.CashAmount
+                : sale.PaymentMethod == PaymentMethod.Efectivo ? sale.Total : 0;
+        }
+
+        private static decimal GetTransferSaleAmount(Sale sale)
+        {
+            return sale.CashAmount > 0 || sale.TransferAmount > 0
+                ? sale.TransferAmount
+                : sale.PaymentMethod == PaymentMethod.Transferencia ? sale.Total : 0;
+        }
+
+        private static decimal GetCashReturnAmount(SaleReturn saleReturn)
+        {
+            if (saleReturn.Sale == null)
+            {
+                return saleReturn.PaymentMethod == PaymentMethod.Efectivo ? saleReturn.Total : 0;
+            }
+
+            return GetCashSaleAmount(saleReturn.Sale);
+        }
+
+        private static decimal GetTransferReturnAmount(SaleReturn saleReturn)
+        {
+            if (saleReturn.Sale == null)
+            {
+                return saleReturn.PaymentMethod == PaymentMethod.Transferencia ? saleReturn.Total : 0;
+            }
+
+            return GetTransferSaleAmount(saleReturn.Sale);
         }
 
         private string FormatQuantity(decimal quantity, string unitOfMeasure)

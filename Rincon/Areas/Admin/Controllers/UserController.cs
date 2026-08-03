@@ -7,6 +7,7 @@ using Rincon.DataAccess.Data;
 using Rincon.Models;
 using Rincon.Models.ViewModels;
 using Rincon.Utilities;
+using System.Text.RegularExpressions;
 
 
 namespace Rincon.Areas.Admin.Controllers
@@ -57,6 +58,11 @@ namespace Rincon.Areas.Admin.Controllers
 
             var userRoles = _userManager.GetRolesAsync(user).GetAwaiter().GetResult();
 
+            if (userRoles.Contains(SD.Role_God))
+            {
+                return NotFound();
+            }
+
             vm.Id = user.Id;
             vm.FullName = user.FullName;
             vm.Email = user.Email;
@@ -75,6 +81,13 @@ namespace Rincon.Areas.Admin.Controllers
         public async Task<IActionResult> Upsert(UserVM vm)
         {
             vm.RoleList = GetRoleList();
+            vm.Email = NormalizeEmail(vm.Email);
+            vm.DNI = NormalizeDni(vm.DNI);
+
+            if (!IsNumericDni(vm.DNI))
+            {
+                ModelState.AddModelError(nameof(vm.DNI), "El DNI solo puede contener números, sin puntos ni caracteres especiales.");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -83,12 +96,15 @@ namespace Rincon.Areas.Admin.Controllers
 
             if (string.IsNullOrEmpty(vm.Id))
             {
+                var email = vm.Email;
+                var dni = vm.DNI;
+
                 var user = new ApplicationUser
                 {
-                    UserName = vm.Email,
-                    Email = vm.Email,
+                    UserName = email,
+                    Email = email,
                     FullName = vm.FullName,
-                    DNI = vm.DNI,
+                    DNI = dni,
                     PhoneNumber = vm.PhoneNumber,
                     Address = vm.Address,
                     Date = DateTime.Now,
@@ -96,7 +112,7 @@ namespace Rincon.Areas.Admin.Controllers
                     EmailConfirmed = true
                 };
 
-                string defaultPassword = $"{vm.DNI}Aa!";
+                string defaultPassword = $"{dni}Aa!";
 
                 var result = await _userManager.CreateAsync(user, defaultPassword);
 
@@ -122,6 +138,12 @@ namespace Rincon.Areas.Admin.Controllers
                 }
 
                 var oldRoles = await _userManager.GetRolesAsync(user);
+
+                if (oldRoles.Contains(SD.Role_God))
+                {
+                    return NotFound();
+                }
+
                 SetPasswordProtection(vm, user, oldRoles);
 
                 if (!vm.CanChangePassword && !string.IsNullOrWhiteSpace(vm.NewPassword))
@@ -186,6 +208,11 @@ namespace Rincon.Areas.Admin.Controllers
                 join role in _db.Roles.AsNoTracking()
                     on userRole.RoleId equals role.Id into roles
                 from role in roles.DefaultIfEmpty()
+                where !_db.UserRoles.AsNoTracking().Any(godUserRole =>
+                    godUserRole.UserId == user.Id &&
+                    _db.Roles.AsNoTracking().Any(godRole =>
+                        godRole.Id == godUserRole.RoleId &&
+                        godRole.Name == SD.Role_God))
                 select new
                 {
                     id = user.Id,
@@ -196,10 +223,10 @@ namespace Rincon.Areas.Admin.Controllers
                     role = role != null && role.Name != null ? role.Name : "Sin rol",
                     isActive = user.IsActive,
                     canToggleStatus = user.Id != currentUserId
-                        && (role == null || role.Name != SD.Role_Admin),
+                        && (role == null || (role.Name != SD.Role_Admin && role.Name != SD.Role_God)),
                     statusProtectionReason = user.Id == currentUserId
                         ? "No podés bloquear tu propio usuario"
-                        : role != null && role.Name == SD.Role_Admin
+                        : role != null && (role.Name == SD.Role_Admin || role.Name == SD.Role_God)
                             ? "Los administradores no se bloquean desde el sistema"
                             : string.Empty
                 };
@@ -265,7 +292,7 @@ namespace Rincon.Areas.Admin.Controllers
                 });
             }
 
-            if (await _userManager.IsInRoleAsync(user, SD.Role_Admin))
+            if (await _userManager.IsInRoleAsync(user, SD.Role_Admin) || await _userManager.IsInRoleAsync(user, SD.Role_God))
             {
                 return Json(new
                 {
@@ -304,7 +331,7 @@ namespace Rincon.Areas.Admin.Controllers
             return _roleManager.Roles
                 .Select(r => r.Name)
                 .AsEnumerable()
-                .Where(roleName => !string.IsNullOrWhiteSpace(roleName))
+                .Where(roleName => !string.IsNullOrWhiteSpace(roleName) && roleName != SD.Role_God)
                 .Select(roleName => new SelectListItem
                 {
                     Text = GetRoleDisplayName(roleName),
@@ -319,6 +346,7 @@ namespace Rincon.Areas.Admin.Controllers
             {
                 SD.Role_Admin => "Administrador",
                 SD.Role_Employee => "Empleado",
+                SD.Role_God => "Dios",
                 _ => roleName ?? "Sin rol"
             };
         }
@@ -327,9 +355,12 @@ namespace Rincon.Areas.Admin.Controllers
         {
             var currentUserId = _userManager.GetUserId(User);
             var isAnotherAdmin = user.Id != currentUserId && userRoles.Contains(SD.Role_Admin);
+            var isGodUser = userRoles.Contains(SD.Role_God);
 
-            vm.CanChangePassword = !isAnotherAdmin;
-            vm.PasswordProtectionMessage = isAnotherAdmin
+            vm.CanChangePassword = !isGodUser && !isAnotherAdmin;
+            vm.PasswordProtectionMessage = isGodUser
+                ? "Este usuario no se administra desde la pantalla de usuarios."
+                : isAnotherAdmin
                 ? "No podés cambiar la contraseña de otro administrador. Si un administrador debe darse de baja o recuperar acceso, comunicate con el dueño del sistema."
                 : null;
         }
@@ -363,6 +394,21 @@ namespace Rincon.Areas.Admin.Controllers
         private int GetDataTablesInt(string key, int defaultValue = 0)
         {
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private static string NormalizeEmail(string? email)
+        {
+            return Regex.Replace(email ?? string.Empty, @"\s+", string.Empty).ToLowerInvariant();
+        }
+
+        private static string NormalizeDni(string? value)
+        {
+            return Regex.Replace(value ?? string.Empty, @"\s+", string.Empty);
+        }
+
+        private static bool IsNumericDni(string? value)
+        {
+            return !string.IsNullOrWhiteSpace(value) && Regex.IsMatch(value, @"^\d+$");
         }
     }
     

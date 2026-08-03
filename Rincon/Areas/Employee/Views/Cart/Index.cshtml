@@ -550,13 +550,27 @@
                 <div class="row g-3 align-items-stretch">
                     <div class="col-lg-6">
                         <div class="checkout-option-card h-100">
-                            <div class="d-flex align-items-center gap-2 mb-3">
-                                <div class="checkout-icon">
-                                    <i class="fa fa-credit-card"></i>
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="checkout-icon">
+                                        <i class="fa fa-credit-card"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="checkout-title mb-0">Medio de pago</h3>
+                                        <p class="checkout-description mb-0">Seleccioná cómo se abona la venta.</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 class="checkout-title mb-0">Medio de pago</h3>
-                                    <p class="checkout-description mb-0">Seleccioná cómo se abona la venta.</p>
+
+                                <div class="form-check form-switch payment-combined-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="isCombinedPayment"
+                                           name="isCombinedPayment"
+                                           value="true" />
+                                    <label class="form-check-label fw-semibold" for="isCombinedPayment">
+                                        Medio de pago combinado
+                                    </label>
                                 </div>
                             </div>
 
@@ -583,6 +597,42 @@
                                     </div>
 
                                     <div id="personalAccountResults" class="personal-account-results d-none"></div>
+                                </div>
+                            </div>
+
+                            <div id="combinedPaymentPanel" class="mt-3 d-none">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="combinedTransferAmount" class="form-label">Transferencia</label>
+                                        <div class="input-group input-group-modern">
+                                            <span class="input-group-text">$</span>
+                                            <input type="text"
+                                                   id="combinedTransferAmount"
+                                                   name="combinedTransferAmountText"
+                                                   class="form-control"
+                                                   inputmode="decimal"
+                                                   autocomplete="off"
+                                                   placeholder="Monto transferido" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="combinedCashAmount" class="form-label">Efectivo</label>
+                                        <div class="input-group input-group-modern">
+                                            <span class="input-group-text">$</span>
+                                            <input type="text"
+                                                   id="combinedCashAmount"
+                                                   name="combinedCashAmountText"
+                                                   class="form-control"
+                                                   inputmode="decimal"
+                                                   autocomplete="off"
+                                                   placeholder="Monto en efectivo" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="combinedPaymentResult" class="change-result mt-2">
+                                    Restante en efectivo: $ 0,00
                                 </div>
                             </div>
                         </div>
@@ -675,6 +725,11 @@
             const cashInput = document.getElementById("cashReceived");
             const changeResult = document.getElementById("changeResult");
             const totalElement = document.getElementById("cartTotal");
+            const isCombinedPayment = document.getElementById("isCombinedPayment");
+            const combinedPaymentPanel = document.getElementById("combinedPaymentPanel");
+            const combinedCashAmount = document.getElementById("combinedCashAmount");
+            const combinedTransferAmount = document.getElementById("combinedTransferAmount");
+            const combinedPaymentResult = document.getElementById("combinedPaymentResult");
             const saleSuccessModalElement = document.getElementById("saleSuccessModal");
             const personalAccountId = document.getElementById("personalAccountId");
             const personalAccountSearch = document.getElementById("personalAccountSearch");
@@ -691,22 +746,41 @@
                 }
 
                 const selectedMethod = paymentMethod.value;
+                const combinedEnabled = isCombinedPayment?.checked === true;
 
-                cashPaymentPanel.classList.toggle("d-none", selectedMethod !== "Efectivo");
-                nonCashNotice.classList.toggle("d-none", selectedMethod === "Efectivo");
-                personalAccountPanel.classList.toggle("d-none", selectedMethod !== "CuentaPersonal");
+                paymentMethod.disabled = combinedEnabled;
+                combinedPaymentPanel?.classList.toggle("d-none", !combinedEnabled);
+                cashPaymentPanel.classList.toggle("d-none", combinedEnabled || selectedMethod !== "Efectivo");
+                nonCashNotice.classList.toggle("d-none", combinedEnabled || selectedMethod === "Efectivo");
+                personalAccountPanel.classList.toggle("d-none", combinedEnabled || selectedMethod !== "CuentaPersonal");
 
-                if (selectedMethod === "CuentaPersonal" && personalAccountSearch) {
+                if (!combinedEnabled && selectedMethod === "CuentaPersonal" && personalAccountSearch) {
                     personalAccountSearch.focus();
                     searchPersonalAccounts(personalAccountSearch.value);
                 } else {
                     hidePersonalAccountResults();
                 }
+
+                updateCombinedPaymentResult();
             }
 
             if (paymentMethod) {
                 paymentMethod.addEventListener("change", updatePaymentMethodView);
                 updatePaymentMethodView();
+            }
+
+            if (isCombinedPayment) {
+                isCombinedPayment.addEventListener("change", function () {
+                    if (isCombinedPayment.checked) {
+                        paymentMethod.value = "Efectivo";
+                        personalAccountId.value = "";
+                        if (personalAccountSearch) {
+                            personalAccountSearch.value = "";
+                        }
+                    }
+
+                    updatePaymentMethodView();
+                });
             }
 
             function parseDecimal(value) {
@@ -870,6 +944,51 @@
                     }
                 });
             }
+
+            function updateCombinedPaymentResult() {
+                if (!combinedPaymentResult || !combinedTransferAmount || !combinedCashAmount || !totalElement) {
+                    return;
+                }
+
+                const total = Number(totalElement.dataset.total);
+                const transferAmount = parseDecimal(combinedTransferAmount.value);
+                const cashReceived = parseDecimal(combinedCashAmount.value);
+                const safeTransfer = Number.isNaN(transferAmount) ? 0 : transferAmount;
+                const remainingCash = total - safeTransfer;
+
+                if (safeTransfer > total) {
+                    combinedPaymentResult.textContent = "La transferencia supera el total de la venta";
+                    combinedPaymentResult.classList.remove("text-muted", "text-success");
+                    combinedPaymentResult.classList.add("text-danger");
+                    return;
+                }
+
+                if (Number.isNaN(cashReceived)) {
+                    combinedPaymentResult.textContent = "Restante en efectivo: $ " + formatMoney(Math.max(remainingCash, 0));
+                    combinedPaymentResult.classList.remove("text-danger", "text-success");
+                    combinedPaymentResult.classList.add("text-muted");
+                    return;
+                }
+
+                const change = cashReceived - remainingCash;
+
+                if (change < 0) {
+                    combinedPaymentResult.textContent = "Faltan en efectivo: $ " + formatMoney(Math.abs(change));
+                    combinedPaymentResult.classList.remove("text-muted", "text-success");
+                    combinedPaymentResult.classList.add("text-danger");
+                    return;
+                }
+
+                combinedPaymentResult.textContent = "Vuelto: $ " + formatMoney(change);
+                combinedPaymentResult.classList.remove("text-muted", "text-danger");
+                combinedPaymentResult.classList.add("text-success");
+            }
+
+            [combinedCashAmount, combinedTransferAmount].forEach((input) => {
+                if (input) {
+                    input.addEventListener("input", updateCombinedPaymentResult);
+                }
+            });
         });
     </script>
 }

@@ -60,7 +60,7 @@
 
                 <div class="col-md-4">
                     <label asp-for="DNI" class="form-label fw-semibold"></label>
-                    <input asp-for="DNI" class="form-control" placeholder="Sin puntos" autocomplete="off" />
+                    <input asp-for="DNI" class="form-control" placeholder="Solo números" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
                     <span asp-validation-for="DNI" class="text-danger small"></span>
                 </div>
 
@@ -91,6 +91,7 @@
                     <i class="fa fa-circle-info me-1"></i>
                     La contraseña inicial será el DNI seguido de <strong>Aa!</strong>.
                     Ejemplo: <strong>12345678Aa!</strong>
+                    El DNI debe cargarse solo con números, sin puntos ni guiones.
                 </div>
             }
             else

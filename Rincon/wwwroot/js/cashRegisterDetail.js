@@ -109,9 +109,17 @@ function renderPaymentBadge(paymentMethod) {
         return '<span class="payment-badge payment-transfer">Transferencia</span>';
     }
 
+    if (paymentMethod === 'Combinado') {
+        return '<span class="payment-badge payment-transfer">Combinado</span>';
+    }
+
+    if (paymentMethod === 'CuentaPersonal') {
+        return '<span class="payment-badge expiration-warning">Cuenta personal</span>';
+    }
+
     if (paymentMethod === 'Sin movimiento de caja') {
         return '<span class="payment-badge expiration-empty">Sin caja</span>';
     }
 
-    return '<span class="payment-badge expiration-warning">Cuenta personal</span>';
+    return `<span class="payment-badge expiration-empty">${paymentMethod || '-'}</span>`;
 }

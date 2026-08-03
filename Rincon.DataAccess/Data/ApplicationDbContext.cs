@@ -69,6 +69,8 @@ namespace Rincon.DataAccess.Data
                 entity.Property(e => e.Total).HasPrecision(18, 2);
                 entity.Property(e => e.AmountReceived).HasPrecision(18, 2);
                 entity.Property(e => e.Change).HasPrecision(18, 2);
+                entity.Property(e => e.CashAmount).HasPrecision(18, 2);
+                entity.Property(e => e.TransferAmount).HasPrecision(18, 2);
                 entity.Property(e => e.PersonalAccountPaidAmount).HasPrecision(18, 2);
             });
 
