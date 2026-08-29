@@ -8,7 +8,9 @@
         ? (!string.IsNullOrWhiteSpace(Model.User.FullName) ? Model.User.FullName : Model.User.Email ?? "Sin usuario")
         : "Sin usuario";
     var countedCash = Model.CountedCashAmount ?? 0;
-    var difference = Model.Difference ?? countedCash - summary.ExpectedCash;
+    var difference = Model.CountedCashAmount.HasValue
+        ? countedCash - summary.ExpectedCash
+        : Model.Difference ?? 0;
     var differenceClass = difference > 0
         ? "text-success"
         : difference < 0

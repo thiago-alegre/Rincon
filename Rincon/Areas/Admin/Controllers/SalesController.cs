@@ -92,22 +92,13 @@ namespace Rincon.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Void(int id, string? reason)
+        public IActionResult Void(int id, string? reason, bool deductReturnedCashFromCounted = false)
         {
             var userId = GetCurrentUserId();
 
             if (string.IsNullOrWhiteSpace(userId))
             {
                 TempData["error"] = "No se pudo identificar el usuario actual";
-                return RedirectToAction(nameof(Detail), new { id });
-            }
-
-            var openCashRegister = _workContainer.CashRegisterSession.GetFirstOrDefault(
-                s => s.UserId == userId && s.ClosedAt == null);
-
-            if (openCashRegister == null)
-            {
-                TempData["error"] = "Debe abrir una caja antes de anular ventas o registrar devoluciones";
                 return RedirectToAction(nameof(Detail), new { id });
             }
 
@@ -134,16 +125,24 @@ namespace Rincon.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Detail), new { id });
             }
 
+            if (!sale.CashRegisterSessionId.HasValue)
+            {
+                TempData["error"] = "La venta no tiene una caja asociada";
+                return RedirectToAction(nameof(Detail), new { id });
+            }
+
             using var transaction = _db.Database.BeginTransaction();
 
             try
             {
+                var originalCashRegisterId = sale.CashRegisterSessionId.Value;
+                var returnedCashAmount = deductReturnedCashFromCounted ? GetCashSaleAmount(sale) : 0;
                 var saleReturn = new SaleReturn
                 {
                     SaleId = sale.Id,
                     Date = DateTime.Now,
                     UserId = userId,
-                    CashRegisterSessionId = openCashRegister.Id,
+                    CashRegisterSessionId = originalCashRegisterId,
                     PaymentMethod = sale.PaymentMethod,
                     Total = sale.Total,
                     IsFullVoid = true,
@@ -186,10 +185,15 @@ namespace Rincon.Areas.Admin.Controllers
 
                 _workContainer.Sale.Update(sale);
                 _workContainer.Save();
+
+                RefreshClosedCashRegisterTotals(originalCashRegisterId, returnedCashAmount);
+
                 transaction.Commit();
 
                 TempData["modalTitle"] = $"Venta #{sale.Id} anulada";
-                TempData["modalText"] = $"Se registró la anulación por $ {sale.Total:N2}. El stock fue repuesto y el movimiento impactó en la caja #{openCashRegister.Id}.";
+                TempData["modalText"] = returnedCashAmount > 0
+                    ? $"Se registró la anulación por $ {sale.Total:N2}. El stock fue repuesto, el movimiento impactó en la caja original #{originalCashRegisterId} y se descontó $ {returnedCashAmount:N2} del efectivo contado."
+                    : $"Se registró la anulación por $ {sale.Total:N2}. El stock fue repuesto y el movimiento impactó en la caja original #{originalCashRegisterId}.";
                 TempData["modalIcon"] = "success";
                 TempData["modalConfirmText"] = "Entendido";
             }
@@ -368,12 +372,15 @@ namespace Rincon.Areas.Admin.Controllers
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
                 var searchPattern = $"%{searchValue}%";
+                var normalizedSearchValue = searchValue.TrimStart('#');
                 var matchingPaymentMethods = Enum.GetValues<PaymentMethod>()
                     .Where(p => p.ToString().Contains(searchValue, StringComparison.OrdinalIgnoreCase))
                     .ToList();
                 var hasTotalSearch = DecimalParser.TryParse(searchValue, out var totalSearch);
+                var hasIdSearch = int.TryParse(normalizedSearchValue, out var idSearch);
 
                 query = query.Where(s =>
+                    (hasIdSearch && s.Id == idSearch) ||
                     (hasTotalSearch && s.Total == totalSearch) ||
                     (hasTotalSearch && s.CashAmount == totalSearch) ||
                     (hasTotalSearch && s.TransferAmount == totalSearch) ||
@@ -387,13 +394,14 @@ namespace Rincon.Areas.Admin.Controllers
 
             query = orderColumn switch
             {
-                0 => orderDirection == "asc" ? query.OrderBy(s => s.Date) : query.OrderByDescending(s => s.Date),
-                1 => orderDirection == "asc" ? query.OrderBy(s => s.PaymentMethod) : query.OrderByDescending(s => s.PaymentMethod),
-                2 => orderDirection == "asc" ? query.OrderBy(s => s.Total) : query.OrderByDescending(s => s.Total),
-                3 => orderDirection == "asc"
+                0 => orderDirection == "asc" ? query.OrderBy(s => s.Id) : query.OrderByDescending(s => s.Id),
+                1 => orderDirection == "asc" ? query.OrderBy(s => s.Date) : query.OrderByDescending(s => s.Date),
+                2 => orderDirection == "asc" ? query.OrderBy(s => s.PaymentMethod) : query.OrderByDescending(s => s.PaymentMethod),
+                3 => orderDirection == "asc" ? query.OrderBy(s => s.Total) : query.OrderByDescending(s => s.Total),
+                4 => orderDirection == "asc"
                     ? query.OrderBy(s => s.User != null ? s.User.FullName : string.Empty)
                     : query.OrderByDescending(s => s.User != null ? s.User.FullName : string.Empty),
-                4 => orderDirection == "asc" ? query.OrderBy(s => s.IsVoided) : query.OrderByDescending(s => s.IsVoided),
+                5 => orderDirection == "asc" ? query.OrderBy(s => s.IsVoided) : query.OrderByDescending(s => s.IsVoided),
                 _ => query.OrderByDescending(s => s.Date)
             };
 
@@ -537,7 +545,7 @@ namespace Rincon.Areas.Admin.Controllers
                     movementDate = r.MovementDate.ToString("dd/MM/yyyy HH:mm"),
                     total = r.Total.ToString("N2"),
                     paymentMethod = r.PaymentMethod,
-                    paymentBreakdown = GetPaymentBreakdown(r.CashAmount, r.TransferAmount),
+                    paymentBreakdown = GetPaymentBreakdown(r.PaymentMethod, r.CashAmount, r.TransferAmount),
                     user = r.User,
                     status = r.Status,
                     statusClass = r.StatusClass,
@@ -560,7 +568,16 @@ namespace Rincon.Areas.Admin.Controllers
 
         private static string GetPaymentBreakdown(Sale sale)
         {
-            return GetPaymentBreakdown(sale.CashAmount, sale.TransferAmount);
+            return sale.PaymentMethod == PaymentMethod.Combinado
+                ? GetPaymentBreakdown(sale.CashAmount, sale.TransferAmount)
+                : string.Empty;
+        }
+
+        private static string GetPaymentBreakdown(string paymentMethod, decimal cashAmount, decimal transferAmount)
+        {
+            return paymentMethod == PaymentMethod.Combinado.ToString()
+                ? GetPaymentBreakdown(cashAmount, transferAmount)
+                : string.Empty;
         }
 
         private static string GetPaymentBreakdown(decimal cashAmount, decimal transferAmount)
@@ -694,6 +711,87 @@ namespace Rincon.Areas.Admin.Controllers
             article.Stock += detail.Quantity;
             _workContainer.Article.Update(article);
             _workContainer.Save();
+        }
+
+        private void RefreshClosedCashRegisterTotals(int cashRegisterSessionId, decimal returnedCashAmount = 0)
+        {
+            var session = _db.CashRegisterSessions
+                .FirstOrDefault(s => s.Id == cashRegisterSessionId);
+
+            if (session == null || session.ClosedAt == null || !session.CountedCashAmount.HasValue)
+            {
+                return;
+            }
+
+            var sales = _db.Sales
+                .AsNoTracking()
+                .Where(s => s.CashRegisterSessionId == cashRegisterSessionId && !s.IsVoided)
+                .ToList();
+
+            var accountPayments = _db.PersonalAccountPayments
+                .AsNoTracking()
+                .Where(p => p.CashRegisterSessionId == cashRegisterSessionId)
+                .ToList();
+
+            var returns = _db.SaleReturns
+                .AsNoTracking()
+                .Include(r => r.Sale)
+                .Where(r => r.CashRegisterSessionId == cashRegisterSessionId)
+                .ToList();
+
+            var cashReturnsForActiveSales = returns
+                .Where(r => r.Sale == null || !r.Sale.IsVoided)
+                .Sum(GetCashReturnAmount);
+
+            var expectedCash = session.OpeningAmount
+                + sales.Sum(GetCashSaleAmount)
+                + accountPayments.Where(p => p.PaymentMethod == PaymentMethod.Efectivo).Sum(p => p.Amount)
+                - cashReturnsForActiveSales;
+
+            if (returnedCashAmount > 0)
+            {
+                session.CountedCashAmount = Math.Max(0, session.CountedCashAmount.Value - returnedCashAmount);
+            }
+
+            session.ExpectedCashAmount = expectedCash;
+            session.Difference = session.CountedCashAmount.Value - expectedCash;
+
+            _workContainer.CashRegisterSession.Update(session);
+            _workContainer.Save();
+        }
+
+        private static decimal GetCashSaleAmount(Sale sale)
+        {
+            return sale.CashAmount > 0 || sale.TransferAmount > 0
+                ? sale.CashAmount
+                : sale.PaymentMethod == PaymentMethod.Efectivo ? sale.Total : 0;
+        }
+
+        private static decimal GetTransferSaleAmount(Sale sale)
+        {
+            return sale.CashAmount > 0 || sale.TransferAmount > 0
+                ? sale.TransferAmount
+                : sale.PaymentMethod == PaymentMethod.Transferencia ? sale.Total : 0;
+        }
+
+        private static decimal GetCashReturnAmount(SaleReturn saleReturn)
+        {
+            if (saleReturn.Sale == null)
+            {
+                return saleReturn.PaymentMethod == PaymentMethod.Efectivo ? saleReturn.Total : 0;
+            }
+
+            return GetCashSaleAmount(saleReturn.Sale);
+        }
+
+        private static decimal GetTransferReturnAmount(SaleReturn saleReturn)
+        {
+            if (saleReturn.Sale == null)
+            {
+                return saleReturn.PaymentMethod == PaymentMethod.Transferencia ? saleReturn.Total : 0;
+            }
+
+            return GetTransferSaleAmount(saleReturn.Sale);
         }
 
         private static bool IsValidQuantityForArticle(Article article, decimal quantity)

@@ -82,7 +82,7 @@
             <div class="detail-metric-card">
                 <div class="detail-metric-label">Total</div>
                 <div class="detail-metric-value success">$ @Model.Total.ToString("N2")</div>
-                @if (Model.PaymentMethod == Rincon.Utilities.Enums.PaymentMethod.Combinado || Model.CashAmount > 0 || Model.TransferAmount > 0)
+                @if (Model.PaymentMethod == Rincon.Utilities.Enums.PaymentMethod.Combinado)
                 {
                     <div class="text-muted small mt-1">
                         Transferencia: $ @Model.TransferAmount.ToString("N2")<br />
@@ -258,6 +258,29 @@
                         <p class="screen-help-description">
                             La anulación corresponde cuando una venta fue registrada por error. Se anulará la venta completa, se repondrá el stock vendido y el importe se descontará de la caja o de la cuenta personal asociada.
                         </p>
+
+                        @if (Model.PaymentMethod == Rincon.Utilities.Enums.PaymentMethod.Efectivo || Model.PaymentMethod == Rincon.Utilities.Enums.PaymentMethod.Combinado)
+                        {
+                            var cashAmountToDeduct = Model.CashAmount > 0 || Model.TransferAmount > 0
+                                ? Model.CashAmount
+                                : Model.Total;
+
+                            <div class="alert alert-warning border-warning-subtle mb-3">
+                                <p class="fw-bold mb-2">
+                                    ¿El efectivo de esta venta fue devuelto al cliente o retirado de la caja?
+                                </p>
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="deductReturnedCashFromCounted"
+                                           name="deductReturnedCashFromCounted"
+                                           value="true" />
+                                    <label class="form-check-label" for="deductReturnedCashFromCounted">
+                                        Sí, descontar $ @cashAmountToDeduct.ToString("N2") del efectivo contado de la caja original.
+                                    </label>
+                                </div>
+                            </div>
+                        }
 
                         <label for="voidReason" class="form-label fw-semibold">Motivo</label>
                         <textarea id="voidReason"

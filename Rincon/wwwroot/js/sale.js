@@ -13,6 +13,12 @@ $(document).ready(function () {
             }
         },
         columns: [
+            {
+                data: 'id',
+                render: function (data) {
+                    return `<span class="fw-bold text-primary">#${data}</span>`;
+                }
+            },
             { data: 'date' },
             { data: 'paymentMethod' },
             {
@@ -50,7 +56,7 @@ $(document).ready(function () {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        order: [[0, 'desc']]
+        order: [[1, 'desc']]
     });
 
     $('#clearSalesFilters').on('click', function () {
