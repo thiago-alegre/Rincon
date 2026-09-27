@@ -5,6 +5,7 @@ using Rincon.DataAccess.Data.Repository;
 using Rincon.DataAccess.Data.Repository.IRepository;
 using Rincon.Models;
 using Rincon.Utilities;
+using Rincon.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,11 +25,7 @@ builder.Services.AddScoped<IWorkContainer, WorkContainer>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
-var dataProtectionBuilder = Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions
-    .PersistKeysToFileSystem(builder.Services.AddDataProtection(), new DirectoryInfo(dataProtectionKeysPath));
-Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions
-    .SetApplicationName(dataProtectionBuilder, "Rincon");
+builder.AddHostingSecurity();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -61,6 +58,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 var app = builder.Build();
+app.VerifyDataProtection();
 
 // Crear roles automáticamente si no existen
 using (var scope = app.Services.CreateScope())
@@ -84,13 +82,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
 }
 else
 {
-    app.UseExceptionHandler("/Error");
+    app.UseProductionErrorHandler();
     app.UseHsts();
 }
 
