@@ -60,9 +60,15 @@ namespace Rincon.DataAccess.Data
                 entity.Property(e => e.Difference).HasPrecision(18, 2);
             });
 
-            builder.Entity<PersonalAccountPayment>()
-                .Property(e => e.Amount)
-                .HasPrecision(18, 2);
+            builder.Entity<PersonalAccountPayment>(entity =>
+            {
+                entity.Property(e => e.Amount).HasPrecision(18, 2);
+
+                entity.HasOne(e => e.VoidedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.VoidedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             builder.Entity<Sale>(entity =>
             {

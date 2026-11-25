@@ -19,7 +19,7 @@ $(document).ready(function () {
                 }
             },
             {
-                data: 'saleNumber',
+                data: 'reference',
                 render: function (data) {
                     return `<span class="fw-bold text-primary">${data}</span>`;
                 }
@@ -51,7 +51,11 @@ $(document).ready(function () {
             {
                 data: 'unitPrice',
                 className: 'text-end text-nowrap',
-                render: function (data) {
+                render: function (data, type, row) {
+                    if (row.movementStatus && row.movementStatus.startsWith('Cobro')) {
+                        return '-';
+                    }
+
                     return `$ ${data}`;
                 }
             },

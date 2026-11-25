@@ -271,7 +271,8 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList()
                 .Select(d => new CashRegisterDetailRow
                 {
-                    SaleId = d.SaleId,
+                    ReferenceId = d.SaleId,
+                    Reference = $"Venta #{d.SaleId}",
                     Date = d.Sale.Date,
                     PaymentMethod = d.Sale.PaymentMethod.ToString(),
                     ArticleName = d.ArticleName,
@@ -301,7 +302,8 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList()
                 .Select(d => new CashRegisterDetailRow
                 {
-                    SaleId = d.SaleDetail?.SaleId ?? 0,
+                    ReferenceId = d.SaleDetail?.SaleId ?? 0,
+                    Reference = d.SaleDetail != null ? $"Venta #{d.SaleDetail.SaleId}" : "Venta no disponible",
                     Date = d.SaleReturn?.Date ?? DateTime.MinValue,
                     PaymentMethod = d.SaleReturn?.PaymentMethod.ToString() ?? "-",
                     ArticleName = d.SaleDetail?.ArticleName ?? "Producto no disponible",
@@ -319,6 +321,31 @@ namespace Rincon.Areas.Employee.Controllers
                     MovementStatusClass = "status-inactive"
                 });
 
+            var accountPaymentRows = _db.PersonalAccountPayments
+                .AsNoTracking()
+                .Include(p => p.PersonalAccount)
+                .Where(p => p.CashRegisterSessionId == id)
+                .ToList()
+                .Select(p => new CashRegisterDetailRow
+                {
+                    ReferenceId = p.Id,
+                    Reference = $"Cobro #{p.Id}",
+                    Date = p.Date,
+                    PaymentMethod = p.PaymentMethod.ToString(),
+                    ArticleName = "Cobro de cuenta personal",
+                    Quantity = "-",
+                    UnitPrice = 0,
+                    Subtotal = p.IsVoided ? -p.Amount : p.Amount,
+                    PersonalAccount = p.PersonalAccount?.FullName ?? "Cuenta no disponible",
+                    PersonalAccountUrl = p.PersonalAccountId > 0
+                        ? Url.Action("Detail", "PersonalAccounts", new { area = "Employee", id = p.PersonalAccountId })
+                        : null,
+                    DebtStatus = p.IsVoided ? "Anulado" : "Cobro registrado",
+                    DebtSettled = !p.IsVoided,
+                    MovementStatus = p.IsVoided ? "Cobro anulado" : "Cobro",
+                    MovementStatusClass = p.IsVoided ? "status-inactive" : "status-active"
+                });
+
             var exchangeRows = _db.SaleExchanges
                 .AsNoTracking()
                 .Include(e => e.Sale)
@@ -328,7 +355,8 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList()
                 .Select(e => new CashRegisterDetailRow
                 {
-                    SaleId = e.SaleId,
+                    ReferenceId = e.SaleId,
+                    Reference = $"Venta #{e.SaleId}",
                     Date = e.Date,
                     PaymentMethod = "Sin movimiento de caja",
                     ArticleName = e.ReplacementArticle != null ? e.ReplacementArticle.Name : "Producto de reemplazo",
@@ -346,7 +374,11 @@ namespace Rincon.Areas.Employee.Controllers
                     MovementStatusClass = "status-warning"
                 });
 
-            var rows = saleRows.Concat(voidRows).Concat(exchangeRows).ToList();
+            var rows = saleRows
+                .Concat(voidRows)
+                .Concat(accountPaymentRows)
+                .Concat(exchangeRows)
+                .ToList();
 
             var recordsTotal = rows.Count;
 
@@ -358,7 +390,7 @@ namespace Rincon.Areas.Employee.Controllers
                 var exchangeSearch = "recambio".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
 
                 rows = rows.Where(d =>
-                    d.SaleId.ToString().Contains(searchValue) ||
+                    d.Reference.Contains(searchValue, StringComparison.OrdinalIgnoreCase) ||
                     d.ArticleName.Contains(searchValue, StringComparison.OrdinalIgnoreCase) ||
                     (d.ArticleCode != null && d.ArticleCode.Contains(searchValue, StringComparison.OrdinalIgnoreCase)) ||
                     d.PaymentMethod.Contains(searchValue, StringComparison.OrdinalIgnoreCase) ||
@@ -375,7 +407,7 @@ namespace Rincon.Areas.Employee.Controllers
             rows = (orderColumn switch
             {
                 0 => orderDirection == "asc" ? rows.OrderBy(d => d.Date) : rows.OrderByDescending(d => d.Date),
-                1 => orderDirection == "asc" ? rows.OrderBy(d => d.SaleId) : rows.OrderByDescending(d => d.SaleId),
+                1 => orderDirection == "asc" ? rows.OrderBy(d => d.ReferenceId) : rows.OrderByDescending(d => d.ReferenceId),
                 2 => orderDirection == "asc" ? rows.OrderBy(d => d.MovementStatus) : rows.OrderByDescending(d => d.MovementStatus),
                 3 => orderDirection == "asc" ? rows.OrderBy(d => d.PaymentMethod) : rows.OrderByDescending(d => d.PaymentMethod),
                 4 => orderDirection == "asc" ? rows.OrderBy(d => d.ArticleName) : rows.OrderByDescending(d => d.ArticleName),
@@ -391,8 +423,7 @@ namespace Rincon.Areas.Employee.Controllers
                 .Take(length)
                 .Select(d => new
                 {
-                    saleId = d.SaleId,
-                    saleNumber = $"#{d.SaleId}",
+                    reference = d.Reference,
                     date = d.Date.ToString("dd/MM/yyyy HH:mm"),
                     dateSort = d.Date.ToString("yyyyMMddHHmmss"),
                     paymentMethod = d.PaymentMethod,
@@ -448,7 +479,7 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList();
 
             var accountPayments = _workContainer.PersonalAccountPayment
-                .GetAll(p => p.CashRegisterSessionId == session.Id)
+                .GetAll(p => p.CashRegisterSessionId == session.Id && !p.IsVoided)
                 .ToList();
 
             var exchanges = _db.SaleExchanges
@@ -598,7 +629,8 @@ namespace Rincon.Areas.Employee.Controllers
 
         private sealed class CashRegisterDetailRow
         {
-            public int SaleId { get; set; }
+            public int ReferenceId { get; set; }
+            public string Reference { get; set; } = string.Empty;
             public DateTime Date { get; set; }
             public string PaymentMethod { get; set; } = string.Empty;
             public string MovementStatus { get; set; } = string.Empty;

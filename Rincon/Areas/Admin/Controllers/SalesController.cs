@@ -730,7 +730,7 @@ namespace Rincon.Areas.Admin.Controllers
 
             var accountPayments = _db.PersonalAccountPayments
                 .AsNoTracking()
-                .Where(p => p.CashRegisterSessionId == cashRegisterSessionId)
+                .Where(p => p.CashRegisterSessionId == cashRegisterSessionId && !p.IsVoided)
                 .ToList();
 
             var returns = _db.SaleReturns

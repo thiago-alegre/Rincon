@@ -8,7 +8,9 @@ using Rincon.Models.ViewModels;
 using Rincon.Utilities;
 using Rincon.Utilities.Enums;
 using System.Globalization;
+using System.Security;
 using System.Security.Claims;
+using System.Text;
 
 namespace Rincon.Areas.Employee.Controllers
 {
@@ -29,6 +31,62 @@ namespace Rincon.Areas.Employee.Controllers
         {
             ViewBag.CanManage = User.IsInRole(SD.Role_Admin);
             return View();
+        }
+
+        [HttpGet]
+        public IActionResult ExportExcel()
+        {
+            var accounts = _db.PersonalAccounts
+                .AsNoTracking()
+                .Where(a => a.isActive)
+                .OrderBy(a => a.FullName)
+                .Select(a => new
+                {
+                    a.FullName,
+                    a.DNI,
+                    a.Phone,
+                    a.Address,
+                    Debt = _db.Sales
+                        .Where(s => s.PersonalAccountId == a.Id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Sum(s => (decimal?)(s.Total - s.PersonalAccountPaidAmount)) ?? 0m,
+                    DebtSince = _db.Sales
+                        .Where(s => s.PersonalAccountId == a.Id && !s.IsVoided && s.PaymentMethod == PaymentMethod.CuentaPersonal && s.Total > s.PersonalAccountPaidAmount)
+                        .Min(s => (DateTime?)s.Date)
+                })
+                .ToList();
+
+            var xml = new StringBuilder();
+            xml.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            xml.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            xml.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            xml.AppendLine("<Worksheet ss:Name=\"Cuentas personales\"><Table>");
+            xml.AppendLine("<Row>");
+
+            foreach (var header in new[] { "Nombre", "DNI", "Teléfono", "Dirección", "Debe", "Desde" })
+            {
+                AppendExcelCell(xml, header);
+            }
+
+            xml.AppendLine("</Row>");
+
+            foreach (var account in accounts)
+            {
+                xml.AppendLine("<Row>");
+                AppendExcelCell(xml, account.FullName);
+                AppendExcelCell(xml, account.DNI);
+                AppendExcelCell(xml, account.Phone ?? "-");
+                AppendExcelCell(xml, account.Address ?? "-");
+                AppendExcelCell(xml, account.Debt);
+                AppendExcelCell(xml, account.DebtSince?.ToString("dd/MM/yyyy") ?? "Sin deuda");
+                xml.AppendLine("</Row>");
+            }
+
+            xml.AppendLine("</Table></Worksheet></Workbook>");
+
+            return File(
+                Encoding.UTF8.GetBytes(xml.ToString()),
+                "application/vnd.ms-excel",
+                $"cuentas-personales-rincon-{DateTime.Today:yyyyMMdd}.xls");
         }
 
         public IActionResult Detail(int id)
@@ -53,6 +111,7 @@ namespace Rincon.Areas.Employee.Controllers
                 DebtSince = pendingSales.OrderBy(s => s.Date).FirstOrDefault()?.Date
             };
 
+            ViewBag.CanVoidPayments = User.IsInRole(SD.Role_Admin);
             return View(vm);
         }
 
@@ -353,6 +412,7 @@ namespace Rincon.Areas.Employee.Controllers
             var searchValue = Request.Query["search[value]"].ToString()?.Trim();
             var orderColumn = GetDataTablesInt("order[0][column]");
             var orderDirection = Request.Query["order[0][dir]"].ToString();
+            var canOpenSaleDetail = User.IsInRole(SD.Role_Admin);
 
             var query = _db.SaleDetails
                 .AsNoTracking()
@@ -360,6 +420,7 @@ namespace Rincon.Areas.Employee.Controllers
                 .Where(d => d.Sale.PersonalAccountId == id)
                 .Select(d => new
                 {
+                    d.SaleId,
                     saleDate = d.Sale.Date,
                     d.ArticleName,
                     d.Quantity,
@@ -380,8 +441,11 @@ namespace Rincon.Areas.Employee.Controllers
                 var settledSearch = "saldada".Contains(search);
                 var pendingSearch = "pendiente".Contains(search);
                 var voidedSearch = "anulada".Contains(search);
+                var normalizedSearch = searchValue.TrimStart('#');
+                var hasSaleIdSearch = int.TryParse(normalizedSearch, out var saleIdSearch);
 
                 query = query.Where(d =>
+                    (hasSaleIdSearch && d.SaleId == saleIdSearch) ||
                     EF.Functions.ILike(d.ArticleName, searchPattern) ||
                     EF.Functions.ILike(d.UnitOfMeasure, searchPattern) ||
                     (voidedSearch && d.IsVoided) ||
@@ -394,11 +458,12 @@ namespace Rincon.Areas.Employee.Controllers
             query = orderColumn switch
             {
                 0 => orderDirection == "asc" ? query.OrderBy(d => d.saleDate) : query.OrderByDescending(d => d.saleDate),
-                1 => orderDirection == "asc" ? query.OrderBy(d => d.ArticleName) : query.OrderByDescending(d => d.ArticleName),
-                2 => orderDirection == "asc" ? query.OrderBy(d => d.Quantity) : query.OrderByDescending(d => d.Quantity),
-                3 => orderDirection == "asc" ? query.OrderBy(d => d.UnitPrice) : query.OrderByDescending(d => d.UnitPrice),
-                4 => orderDirection == "asc" ? query.OrderBy(d => d.Subtotal) : query.OrderByDescending(d => d.Subtotal),
-                5 => orderDirection == "asc" ? query.OrderBy(d => d.IsPersonalAccountSettled) : query.OrderByDescending(d => d.IsPersonalAccountSettled),
+                1 => orderDirection == "asc" ? query.OrderBy(d => d.SaleId) : query.OrderByDescending(d => d.SaleId),
+                2 => orderDirection == "asc" ? query.OrderBy(d => d.ArticleName) : query.OrderByDescending(d => d.ArticleName),
+                3 => orderDirection == "asc" ? query.OrderBy(d => d.Quantity) : query.OrderByDescending(d => d.Quantity),
+                4 => orderDirection == "asc" ? query.OrderBy(d => d.UnitPrice) : query.OrderByDescending(d => d.UnitPrice),
+                5 => orderDirection == "asc" ? query.OrderBy(d => d.Subtotal) : query.OrderByDescending(d => d.Subtotal),
+                6 => orderDirection == "asc" ? query.OrderBy(d => d.IsPersonalAccountSettled) : query.OrderByDescending(d => d.IsPersonalAccountSettled),
                 _ => query.OrderByDescending(d => d.saleDate)
             };
 
@@ -414,6 +479,11 @@ namespace Rincon.Areas.Employee.Controllers
 
                     return new
                     {
+                        saleId = d.SaleId,
+                        saleNumber = $"#{d.SaleId}",
+                        saleDetailUrl = canOpenSaleDetail
+                            ? Url.Action("Detail", "Sales", new { area = "Admin", id = d.SaleId })
+                            : null,
                         date = d.saleDate.ToString("dd/MM/yyyy HH:mm"),
                         product = d.ArticleName,
                         quantity = FormatSaleQuantity(d.Quantity, d.UnitOfMeasure),
@@ -444,13 +514,16 @@ namespace Rincon.Areas.Employee.Controllers
             var searchValue = Request.Query["search[value]"].ToString()?.Trim();
             var orderColumn = GetDataTablesInt("order[0][column]");
             var orderDirection = Request.Query["order[0][dir]"].ToString();
+            var canVoidPayments = User.IsInRole(SD.Role_Admin);
 
             var query = _db.PersonalAccountPayments
                 .AsNoTracking()
                 .Include(p => p.User)
+                .Include(p => p.VoidedByUser)
                 .Where(p => p.PersonalAccountId == id)
                 .Select(p => new
                 {
+                    p.Id,
                     p.Date,
                     p.PaymentMethod,
                     p.Amount,
@@ -458,7 +531,15 @@ namespace Rincon.Areas.Employee.Controllers
                     userName = p.User != null
                         ? (p.User.FullName != null && p.User.FullName != string.Empty ? p.User.FullName : p.User.Email)
                         : "Sin usuario",
-                    p.Notes
+                    p.Notes,
+                    p.IsVoided,
+                    p.VoidedAt,
+                    p.VoidReason,
+                    voidedByUserName = p.VoidedByUser != null
+                        ? (p.VoidedByUser.FullName != null && p.VoidedByUser.FullName != string.Empty
+                            ? p.VoidedByUser.FullName
+                            : p.VoidedByUser.Email)
+                        : null
                 });
 
             var recordsTotal = query.Count();
@@ -466,6 +547,8 @@ namespace Rincon.Areas.Employee.Controllers
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
                 var searchPattern = $"%{searchValue}%";
+                var voidedSearch = "anulado".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+                var activeSearch = "vigente".Contains(searchValue, StringComparison.OrdinalIgnoreCase);
                 var matchingPaymentMethods = Enum.GetValues<PaymentMethod>()
                     .Where(p => p.ToString().Contains(searchValue, StringComparison.OrdinalIgnoreCase))
                     .ToList();
@@ -473,7 +556,10 @@ namespace Rincon.Areas.Employee.Controllers
                 query = query.Where(p =>
                     matchingPaymentMethods.Contains(p.PaymentMethod) ||
                     (p.userName != null && EF.Functions.ILike(p.userName, searchPattern)) ||
-                    (p.Notes != null && EF.Functions.ILike(p.Notes, searchPattern)));
+                    (p.Notes != null && EF.Functions.ILike(p.Notes, searchPattern)) ||
+                    (p.VoidReason != null && EF.Functions.ILike(p.VoidReason, searchPattern)) ||
+                    (voidedSearch && p.IsVoided) ||
+                    (activeSearch && !p.IsVoided));
             }
 
             var recordsFiltered = query.Count();
@@ -495,12 +581,19 @@ namespace Rincon.Areas.Employee.Controllers
                 .ToList()
                 .Select(p => new
                 {
+                    id = p.Id,
                     date = p.Date.ToString("dd/MM/yyyy HH:mm"),
                     paymentMethod = p.PaymentMethod.ToString(),
                     amount = p.Amount.ToString("N2"),
                     cashRegister = $"Caja #{p.CashRegisterSessionId}",
+                    cashRegisterId = p.CashRegisterSessionId,
                     user = p.userName,
-                    notes = string.IsNullOrWhiteSpace(p.Notes) ? "-" : p.Notes
+                    notes = string.IsNullOrWhiteSpace(p.Notes) ? "-" : p.Notes,
+                    isVoided = p.IsVoided,
+                    voidedAt = p.VoidedAt.HasValue ? p.VoidedAt.Value.ToString("dd/MM/yyyy HH:mm") : null,
+                    voidedBy = p.voidedByUserName,
+                    voidReason = p.VoidReason,
+                    canVoid = canVoidPayments && !p.IsVoided
                 });
 
             return Json(new
@@ -510,6 +603,83 @@ namespace Rincon.Areas.Employee.Controllers
                 recordsFiltered,
                 data
             });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = SD.Role_Admin)]
+        public IActionResult VoidPayment(int id, string? reason, bool deductReturnedCashFromCounted = false)
+        {
+            var userId = GetCurrentUserId();
+            var payment = _db.PersonalAccountPayments
+                .FirstOrDefault(p => p.Id == id);
+
+            if (payment == null)
+            {
+                TempData["error"] = "No se encontró el pago de cuenta personal";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (payment.IsVoided)
+            {
+                TempData["error"] = "El pago ya está anulado";
+                return RedirectToAction(nameof(Detail), new { id = payment.PersonalAccountId });
+            }
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                TempData["error"] = "No se pudo identificar el usuario actual";
+                return RedirectToAction(nameof(Detail), new { id = payment.PersonalAccountId });
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["error"] = "Ingrese el motivo de la anulación";
+                return RedirectToAction(nameof(Detail), new { id = payment.PersonalAccountId });
+            }
+
+            var voidReason = reason.Trim();
+            if (voidReason.Length > 500)
+            {
+                TempData["error"] = "El motivo no puede superar los 500 caracteres";
+                return RedirectToAction(nameof(Detail), new { id = payment.PersonalAccountId });
+            }
+
+            using var transaction = _db.Database.BeginTransaction();
+
+            try
+            {
+                payment.IsVoided = true;
+                payment.VoidedAt = DateTime.Now;
+                payment.VoidedByUserId = userId;
+                payment.VoidReason = voidReason;
+                _db.SaveChanges();
+
+                RecalculatePersonalAccountPayments(payment.PersonalAccountId);
+
+                var returnedCashAmount = payment.PaymentMethod == PaymentMethod.Efectivo && deductReturnedCashFromCounted
+                    ? payment.Amount
+                    : 0;
+
+                RefreshClosedCashRegisterTotals(payment.CashRegisterSessionId, returnedCashAmount);
+                _db.SaveChanges();
+
+                transaction.Commit();
+
+                TempData["modalTitle"] = $"Pago #{payment.Id} anulado";
+                TempData["modalText"] = returnedCashAmount > 0
+                    ? $"Se anuló el pago de $ {payment.Amount:N2}, se restauró la deuda y se descontó el efectivo devuelto de la caja #{payment.CashRegisterSessionId}."
+                    : $"Se anuló el pago de $ {payment.Amount:N2} y se restauró la deuda correspondiente.";
+                TempData["modalIcon"] = "success";
+                TempData["modalConfirmText"] = "Entendido";
+            }
+            catch
+            {
+                transaction.Rollback();
+                TempData["error"] = "No se pudo anular el pago. No se modificaron la deuda ni la caja.";
+            }
+
+            return RedirectToAction(nameof(Detail), new { id = payment.PersonalAccountId });
         }
 
         [HttpDelete]
@@ -540,6 +710,121 @@ namespace Rincon.Areas.Employee.Controllers
             return Json(new { success = true, message = "Cuenta personal eliminada correctamente" });
         }
 
+        private void RecalculatePersonalAccountPayments(int personalAccountId)
+        {
+            var sales = _db.Sales
+                .Where(s =>
+                    s.PersonalAccountId == personalAccountId &&
+                    !s.IsVoided &&
+                    s.PaymentMethod == PaymentMethod.CuentaPersonal)
+                .OrderBy(s => s.Date)
+                .ThenBy(s => s.Id)
+                .ToList();
+
+            foreach (var sale in sales)
+            {
+                sale.PersonalAccountPaidAmount = 0;
+                sale.IsPersonalAccountSettled = false;
+                sale.PersonalAccountSettledAt = null;
+            }
+
+            var activePayments = _db.PersonalAccountPayments
+                .AsNoTracking()
+                .Where(p => p.PersonalAccountId == personalAccountId && !p.IsVoided)
+                .OrderBy(p => p.Date)
+                .ThenBy(p => p.Id)
+                .Select(p => new { p.Date, p.Amount })
+                .ToList();
+
+            foreach (var activePayment in activePayments)
+            {
+                var remainingPayment = activePayment.Amount;
+
+                foreach (var sale in sales.Where(s => s.Date <= activePayment.Date && s.PersonalAccountPaidAmount < s.Total))
+                {
+                    if (remainingPayment <= 0)
+                    {
+                        break;
+                    }
+
+                    var pendingAmount = sale.Total - sale.PersonalAccountPaidAmount;
+                    var appliedAmount = Math.Min(pendingAmount, remainingPayment);
+
+                    sale.PersonalAccountPaidAmount += appliedAmount;
+                    remainingPayment -= appliedAmount;
+
+                    if (sale.PersonalAccountPaidAmount >= sale.Total)
+                    {
+                        sale.PersonalAccountPaidAmount = sale.Total;
+                        sale.IsPersonalAccountSettled = true;
+                        sale.PersonalAccountSettledAt = activePayment.Date;
+                    }
+                }
+            }
+        }
+
+        private void RefreshClosedCashRegisterTotals(int cashRegisterSessionId, decimal returnedCashAmount)
+        {
+            var session = _db.CashRegisterSessions
+                .FirstOrDefault(s => s.Id == cashRegisterSessionId);
+
+            if (session == null || session.ClosedAt == null || !session.CountedCashAmount.HasValue)
+            {
+                return;
+            }
+
+            var sales = _db.Sales
+                .AsNoTracking()
+                .Where(s => s.CashRegisterSessionId == cashRegisterSessionId && !s.IsVoided)
+                .ToList();
+
+            var accountPayments = _db.PersonalAccountPayments
+                .AsNoTracking()
+                .Where(p => p.CashRegisterSessionId == cashRegisterSessionId && !p.IsVoided)
+                .ToList();
+
+            var returns = _db.SaleReturns
+                .AsNoTracking()
+                .Include(r => r.Sale)
+                .Where(r => r.CashRegisterSessionId == cashRegisterSessionId)
+                .ToList();
+
+            var cashReturnsForActiveSales = returns
+                .Where(r => r.Sale == null || !r.Sale.IsVoided)
+                .Sum(GetCashReturnAmount);
+
+            session.ExpectedCashAmount = session.OpeningAmount
+                + sales.Sum(GetCashSaleAmount)
+                + accountPayments
+                    .Where(p => p.PaymentMethod == PaymentMethod.Efectivo)
+                    .Sum(p => p.Amount)
+                - cashReturnsForActiveSales;
+
+            if (returnedCashAmount > 0)
+            {
+                session.CountedCashAmount = Math.Max(0, session.CountedCashAmount.Value - returnedCashAmount);
+            }
+
+            session.Difference = session.CountedCashAmount.Value - session.ExpectedCashAmount.Value;
+        }
+
+        private static decimal GetCashSaleAmount(Sale sale)
+        {
+            return sale.CashAmount > 0 || sale.TransferAmount > 0
+                ? sale.CashAmount
+                : sale.PaymentMethod == PaymentMethod.Efectivo ? sale.Total : 0;
+        }
+
+        private static decimal GetCashReturnAmount(SaleReturn saleReturn)
+        {
+            if (saleReturn.Sale == null)
+            {
+                return saleReturn.PaymentMethod == PaymentMethod.Efectivo ? saleReturn.Total : 0;
+            }
+
+            return GetCashSaleAmount(saleReturn.Sale);
+        }
+
         private string? GetCurrentUserId()
         {
             var claimsIdentity = User.Identity as ClaimsIdentity;
@@ -549,6 +834,19 @@ namespace Rincon.Areas.Employee.Controllers
         private int GetDataTablesInt(string key, int defaultValue = 0)
         {
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private static void AppendExcelCell(StringBuilder xml, object? value)
+        {
+            if (value is decimal or int or long or double or float)
+            {
+                var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+                xml.AppendLine($"<Cell><Data ss:Type=\"Number\">{number}</Data></Cell>");
+                return;
+            }
+
+            var text = SecurityElement.Escape(value?.ToString() ?? string.Empty) ?? string.Empty;
+            xml.AppendLine($"<Cell><Data ss:Type=\"String\">{text}</Data></Cell>");
         }
 
         private bool TryParseDecimal(string? value, out decimal result) => DecimalParser.TryParse(value, out result);

@@ -463,6 +463,9 @@ namespace Rincon.DataAccess.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<bool>("IsVoided")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -476,6 +479,16 @@ namespace Rincon.DataAccess.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("VoidedByUserId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CashRegisterSessionId");
@@ -483,6 +496,8 @@ namespace Rincon.DataAccess.Migrations
                     b.HasIndex("PersonalAccountId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("VoidedByUserId");
 
                     b.ToTable("PersonalAccountPayments");
                 });
@@ -966,11 +981,18 @@ namespace Rincon.DataAccess.Migrations
                         .WithMany()
                         .HasForeignKey("UserId");
 
+                    b.HasOne("Rincon.Models.ApplicationUser", "VoidedByUser")
+                        .WithMany()
+                        .HasForeignKey("VoidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CashRegisterSession");
 
                     b.Navigation("PersonalAccount");
 
                     b.Navigation("User");
+
+                    b.Navigation("VoidedByUser");
                 });
 
             modelBuilder.Entity("Rincon.Models.Sale", b =>

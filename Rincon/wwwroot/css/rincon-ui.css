@@ -448,6 +448,51 @@ table.dataTable tbody td {
     gap: 8px;
 }
 
+#personalAccountsTable {
+    table-layout: fixed;
+    min-width: 1105px;
+}
+
+.personal-accounts-table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+#personalAccountsTable .personal-account-address {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#personalAccountsTable th:nth-child(2),
+#personalAccountsTable td:nth-child(2),
+#personalAccountsTable th:nth-child(3),
+#personalAccountsTable td:nth-child(3),
+#personalAccountsTable th:nth-child(5),
+#personalAccountsTable td:nth-child(5),
+#personalAccountsTable th:nth-child(6),
+#personalAccountsTable td:nth-child(6),
+#personalAccountsTable th:nth-child(7),
+#personalAccountsTable td:nth-child(7) {
+    white-space: nowrap;
+}
+
+#personalAccountsTable .datatable-action-group {
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+.personal-account-action-btn {
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
 /* DETAIL PANELS */
 
 .detail-metric-card {

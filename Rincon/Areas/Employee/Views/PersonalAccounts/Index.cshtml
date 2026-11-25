@@ -38,9 +38,15 @@
                 <span class="section-kicker">Listado</span>
                 <h2 class="section-title mb-0">Personas con cuenta</h2>
             </div>
+            <a asp-area="Employee"
+               asp-controller="PersonalAccounts"
+               asp-action="ExportExcel"
+               class="btn btn-soft-secondary btn-modern-sm">
+                <i class="fa fa-file-excel me-1"></i> Excel
+            </a>
         </div>
 
-        <div class="table-responsive custom-table-wrapper">
+        <div class="table-responsive custom-table-wrapper personal-accounts-table-wrapper">
             <table id="personalAccountsTable" class="table custom-table mb-0 w-100">
                 <thead>
                     <tr>

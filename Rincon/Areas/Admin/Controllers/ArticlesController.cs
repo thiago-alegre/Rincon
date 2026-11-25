@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Rincon.DataAccess.Data;
 using Rincon.Utilities;
+using System.Security;
+using System.Text;
 
 namespace Rincon.Areas.Admin.Controllers
 {
@@ -31,6 +33,70 @@ namespace Rincon.Areas.Admin.Controllers
         public IActionResult Index()
         {
             return View();
+        }
+
+        [HttpGet]
+        public IActionResult ExportExcel()
+        {
+            var articles = _db.Articles
+                .AsNoTracking()
+                .Include(a => a.Category)
+                .OrderBy(a => a.Name)
+                .Select(article => new
+                {
+                    article.Name,
+                    article.Code,
+                    Category = article.Category != null ? article.Category.Name : "Sin categoría",
+                    article.Price,
+                    article.Cost,
+                    Stock = article.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0)
+                            .Sum(b => (decimal?)b.Quantity) ?? 0
+                        : article.Stock,
+                    article.UnitOfMeasure,
+                    ExpirationDate = article.UsesBatches
+                        ? _db.ArticleBatches
+                            .Where(b => b.ArticleId == article.Id && b.IsActive && b.Quantity > 0 && b.ExpirationDate.HasValue)
+                            .Min(b => b.ExpirationDate)
+                        : article.ExpirationDate
+                })
+                .ToList();
+
+            var xml = new StringBuilder();
+            xml.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            xml.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            xml.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            xml.AppendLine("<Worksheet ss:Name=\"Artículos\"><Table>");
+            xml.AppendLine("<Row>");
+
+            foreach (var header in new[] { "Nombre", "Código", "Categoría", "Precio", "Costo", "Stock", "Unidad", "Vencimiento" })
+            {
+                AppendExcelCell(xml, header);
+            }
+
+            xml.AppendLine("</Row>");
+
+            foreach (var article in articles)
+            {
+                xml.AppendLine("<Row>");
+                AppendExcelCell(xml, article.Name);
+                AppendExcelCell(xml, article.Code);
+                AppendExcelCell(xml, article.Category);
+                AppendExcelCell(xml, article.Price);
+                AppendExcelCell(xml, article.Cost);
+                AppendExcelCell(xml, article.Stock);
+                AppendExcelCell(xml, article.UnitOfMeasure);
+                AppendExcelCell(xml, article.ExpirationDate?.ToString("dd/MM/yyyy") ?? "Sin vencimiento");
+                xml.AppendLine("</Row>");
+            }
+
+            xml.AppendLine("</Table></Worksheet></Workbook>");
+
+            return File(
+                Encoding.UTF8.GetBytes(xml.ToString()),
+                "application/vnd.ms-excel",
+                $"articulos-rincon-{DateTime.Today:yyyyMMdd}.xls");
         }
 
         public IActionResult Upsert(int? id)
@@ -492,6 +558,19 @@ namespace Rincon.Areas.Admin.Controllers
         private int GetDataTablesInt(string key, int defaultValue = 0)
         {
             return int.TryParse(Request.Query[key], out var value) ? value : defaultValue;
+        }
+
+        private static void AppendExcelCell(StringBuilder xml, object? value)
+        {
+            if (value is decimal or int or long or double or float)
+            {
+                var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+                xml.AppendLine($"<Cell><Data ss:Type=\"Number\">{number}</Data></Cell>");
+                return;
+            }
+
+            var text = SecurityElement.Escape(value?.ToString() ?? string.Empty) ?? string.Empty;
+            xml.AppendLine($"<Cell><Data ss:Type=\"String\">{text}</Data></Cell>");
         }
 
         #endregion

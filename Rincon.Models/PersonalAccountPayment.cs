@@ -38,5 +38,17 @@ namespace Rincon.Models
 
         [ForeignKey("UserId")]
         public ApplicationUser? User { get; set; }
+
+        public bool IsVoided { get; set; } = false;
+
+        public DateTime? VoidedAt { get; set; }
+
+        public string? VoidedByUserId { get; set; }
+
+        [ForeignKey("VoidedByUserId")]
+        public ApplicationUser? VoidedByUser { get; set; }
+
+        [MaxLength(500)]
+        public string? VoidReason { get; set; }
     }
 }
