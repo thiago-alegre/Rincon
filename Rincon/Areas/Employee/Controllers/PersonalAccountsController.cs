@@ -608,7 +608,7 @@ namespace Rincon.Areas.Employee.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = SD.Role_Admin)]
-        public IActionResult VoidPayment(int id, string? reason, bool deductReturnedCashFromCounted = false)
+        public IActionResult VoidPayment(int id, string? reason)
         {
             var userId = GetCurrentUserId();
             var payment = _db.PersonalAccountPayments
@@ -657,7 +657,7 @@ namespace Rincon.Areas.Employee.Controllers
 
                 RecalculatePersonalAccountPayments(payment.PersonalAccountId);
 
-                var returnedCashAmount = payment.PaymentMethod == PaymentMethod.Efectivo && deductReturnedCashFromCounted
+                var returnedCashAmount = payment.PaymentMethod == PaymentMethod.Efectivo
                     ? payment.Amount
                     : 0;
 
@@ -667,9 +667,7 @@ namespace Rincon.Areas.Employee.Controllers
                 transaction.Commit();
 
                 TempData["modalTitle"] = $"Pago #{payment.Id} anulado";
-                TempData["modalText"] = returnedCashAmount > 0
-                    ? $"Se anuló el pago de $ {payment.Amount:N2}, se restauró la deuda y se descontó el efectivo devuelto de la caja #{payment.CashRegisterSessionId}."
-                    : $"Se anuló el pago de $ {payment.Amount:N2} y se restauró la deuda correspondiente.";
+                TempData["modalText"] = $"Se anuló el pago de $ {payment.Amount:N2}, se restauró la deuda y se descontó el importe de la caja #{payment.CashRegisterSessionId}.";
                 TempData["modalIcon"] = "success";
                 TempData["modalConfirmText"] = "Entendido";
             }

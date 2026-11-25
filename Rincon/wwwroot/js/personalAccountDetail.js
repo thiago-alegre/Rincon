@@ -155,12 +155,6 @@ $(document).ready(function () {
             document.getElementById('voidPaymentCashRegister').textContent = cashRegister;
             document.getElementById('voidPaymentReason').value = '';
 
-            const returnedCashContainer = document.getElementById('returnedCashContainer');
-            const returnedCashCheckbox = document.getElementById('deductReturnedCashFromCounted');
-            const isCashPayment = paymentMethod === 'Efectivo';
-
-            returnedCashContainer.classList.toggle('d-none', !isCashPayment);
-            returnedCashCheckbox.checked = false;
         });
     }
 });

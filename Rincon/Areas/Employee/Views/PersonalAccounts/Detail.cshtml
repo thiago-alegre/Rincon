@@ -163,24 +163,13 @@
 
                     <div class="modal-body screen-help-body">
                         <p class="screen-help-description mb-3">
-                            El pago permanecerá en el historial como anulado y la deuda de la cuenta será recalculada.
+                            El pago permanecerá en el historial como anulado, la deuda será recalculada y el importe se descontará automáticamente de la caja asociada.
                         </p>
 
                         <div class="alert alert-warning border-warning-subtle">
                             <div><strong id="voidPaymentAmount"></strong></div>
                             <div id="voidPaymentMethod" class="small"></div>
                             <div id="voidPaymentCashRegister" class="small"></div>
-                        </div>
-
-                        <div id="returnedCashContainer" class="form-check mb-3 d-none">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   id="deductReturnedCashFromCounted"
-                                   name="deductReturnedCashFromCounted"
-                                   value="true" />
-                            <label class="form-check-label" for="deductReturnedCashFromCounted">
-                                El efectivo fue devuelto al cliente o retirado de la caja. Descontarlo del efectivo contado si la caja ya está cerrada.
-                            </label>
                         </div>
 
                         <label for="voidPaymentReason" class="form-label fw-semibold">Motivo</label>
